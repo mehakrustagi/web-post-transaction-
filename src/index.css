@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: #f9fafb;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+}
+
+/* ───────── Printer, ported from atlys-visa-submitted-animated_2.html ─────────
+   The classes are toggled from `PrintRig`; the mechanic is that file's. */
+
+.rig-box.rumble .rig { animation: rumble .1s steps(2) infinite; }
+@keyframes rumble {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(.25px, -.2px); }
+  100% { transform: translate(-.2px, .15px); }
+}
+
+.led {
+  width: 5px; height: 5px; border-radius: 50%; background: #555;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+  transition: background .4s, box-shadow .4s;
+}
+.rig-box.printing .led {
+  background: #FFB547;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.3), 0 0 8px 1px rgba(255,181,71,.7);
+  animation: blink .6s ease-in-out infinite alternate;
+}
+.rig-box.done .led {
+  background: #3DDC84;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.3), 0 0 8px 1px rgba(61,220,132,.65);
+  animation: none;
+}
+@keyframes blink { to { opacity: .45; } }
+
+/* The thermal print-head: a warm line deep in the slot while printing. */
+.hole-shade::after {
+  content: ""; position: absolute; left: 6%; right: 6%; top: 2px; height: 1.5px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,150,70,.35), rgba(255,190,120,.5), rgba(255,150,70,.35), transparent);
+  filter: blur(1.2px); opacity: 0; transition: opacity .5s ease;
+}
+.rig-box.printing .hole-shade::after { opacity: 1; animation: head .18s steps(3) infinite; }
+.rig-box.done .hole-shade::after { opacity: 0; animation: none; }
+@keyframes head { 0% { opacity: .55; } 50% { opacity: 1; } 100% { opacity: .7; } }
+
+.lip-shadow { opacity: 0; transition: opacity .4s ease; }
+.rig-box.printing .lip-shadow { opacity: 1; }
+
+.stub { display: none; transform-origin: 100% 0; }
+.rig-box.torn .stub { display: block; }
+
+.flap { opacity: 0; filter: drop-shadow(-1px 2px 2px rgba(20,22,35,.22)); }
+.rig-box.flapped .flap { opacity: 1; }
+
+.sheet { visibility: hidden; }
+.rig-box.printing .sheet {
+  visibility: visible;
+  filter: drop-shadow(0 2px 3px rgba(20,22,35,.06)) drop-shadow(0 16px 22px rgba(20,22,35,.10));
+  transition: filter .9s ease;
+}
+.rig-box.torn .sheet {
+  filter: drop-shadow(0 3px 4px rgba(20,22,35,.07)) drop-shadow(0 28px 36px rgba(20,22,35,.16));
+}
+.rig-box.float .sheet { animation: float 6s ease-in-out infinite; }
+@keyframes float {
+  0%, 100% { transform: translateY(28px) rotate(0deg); }
+  50%      { transform: translateY(32px) rotate(.3deg); }
+}
+
+/* A barely-there tint drifting across the stock. */
+.paper {
+  background: linear-gradient(115deg, #FFFFFF 0%, #F8F7FF 22%, #FFFFFF 42%, #F5FBF8 62%, #FFFFFF 78%, #FFF9F4 100%);
+  background-size: 320% 320%;
+  animation: paperTint 22s ease-in-out infinite alternate;
+}
+@keyframes paperTint {
+  0%   { background-position: 0% 30%; }
+  50%  { background-position: 60% 70%; }
+  100% { background-position: 100% 20%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rig-box *, .rig-box *::after { animation: none !important; }
+}

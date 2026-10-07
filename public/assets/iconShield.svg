@@ -1,0 +1,17 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Icon Base">
+<rect x="0.5" y="0.5" width="35" height="35" rx="9.5" fill="#F9FAFB"/>
+<rect x="0.5" y="0.5" width="35" height="35" rx="9.5" stroke="#E5E7EB"/>
+<g id="shield" clip-path="url(#clip0_0_40)">
+<g id="Vector">
+</g>
+<path id="Vector_2" d="M18 7L9 11V17C9 22.55 12.84 27.74 18 29C23.16 27.74 27 22.55 27 17V11L18 7Z" fill="#323232"/>
+</g>
+<path id="Union" d="M18.9902 17.1C18.9902 17.3209 19.1693 17.5 19.3902 17.5H22.1C22.3209 17.5 22.5 17.6791 22.5 17.9V19.1C22.5 19.3209 22.3209 19.5 22.1 19.5H19.3902C19.1693 19.5 18.9902 19.6791 18.9902 19.9V22.6C18.9902 22.8209 18.8111 23 18.5902 23H17.3902C17.1693 23 16.9902 22.8209 16.9902 22.6V19.9C16.9902 19.6791 16.8111 19.5 16.5902 19.5H13.9C13.6791 19.5 13.5 19.3209 13.5 19.1V17.9C13.5 17.6791 13.6791 17.5 13.9 17.5H16.5902C16.8111 17.5 16.9902 17.3209 16.9902 17.1V14.4C16.9902 14.1791 17.1693 14 17.3902 14H18.5902C18.8111 14 18.9902 14.1791 18.9902 14.4V17.1Z" fill="white"/>
+</g>
+<defs>
+<clipPath id="clip0_0_40">
+<rect width="24" height="24" fill="white" transform="translate(6 6)"/>
+</clipPath>
+</defs>
+</svg>
