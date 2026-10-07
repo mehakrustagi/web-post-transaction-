@@ -28,6 +28,16 @@ out in the frames' own coordinates and scales the result to fit the window
 (`useFitScale`). Nothing reflows. `App.tsx` also owns the clock: one list of
 beats, one `setTimeout` each.
 
+## The opening
+
+The card holds blank for a beat, then the flag, the country line and the
+headline arrive in the middle of it — where there is nothing else to look at —
+and only once they have been read do they glide up to the positions the frame
+draws them in. That move is what makes room for the printer, which rises in
+underneath while they are still settling and starts feeding before it has
+finished arriving. The three travel as one block (`HERO_DROP`), so the glide is
+a single move rather than three kept in step.
+
 ## The print
 
 `PrintRig.tsx` is the printer from `atlys-visa-submitted-animated_2.html`,

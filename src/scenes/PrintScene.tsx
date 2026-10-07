@@ -11,8 +11,28 @@ const MACHINE_Y = 329
 /** The line the leading edge comes through. */
 export const PAPER_TOP = MACHINE_Y + EXIT_Y
 
-/** When each thing happens, in seconds from the start of the sequence. */
-export const AT = { flag: 0.15, namer: 0.42, headline: 0.62, machine: 0.95, feed: 1.35 }
+/**
+ * When each thing happens, in seconds from the start of the sequence.
+ *
+ * The card holds blank for a beat first. Then the flag, the country line and
+ * the headline arrive in the middle of it, where there is nothing else to look
+ * at, and only once they have been read do they glide up to the positions the
+ * frame draws them in — which is what makes room for the printer. The machine
+ * rises in underneath while they are still settling, and starts feeding before
+ * it has finished arriving.
+ */
+export const AT = {
+  flag: 1,
+  namer: 1.25,
+  headline: 1.45,
+  lift: 2.9,
+  machine: 3.45,
+  feed: 4.1,
+}
+
+/** How far down the group starts: enough to sit centred on the frame. */
+const HERO_DROP = 240
+const LIFT_S = 1.5
 
 /**
  * The slip does not fly away — it recedes, into the exact spot the Cybertruck
@@ -66,6 +86,18 @@ export function PrintScene({
         animate={{ opacity: leaving ? 0 : 1, y: leaving ? -12 : 0 }}
         transition={{ duration: 0.45, ease: 'easeIn' }}
       >
+        {/*
+          The three of them travel as one block. They are written in the
+          frame's own coordinates and the whole group is dropped to the middle
+          of the card to begin with, so the glide up is a single move rather
+          than three that have to be kept in step.
+        */}
+        <motion.div
+          className="absolute inset-0"
+          initial={{ y: HERO_DROP }}
+          animate={{ y: 0 }}
+          transition={{ delay: AT.lift, duration: LIFT_S, ease: [0.5, 0, 0.2, 1] }}
+        >
         <motion.div
           className="absolute"
           style={{ left: 613, top: 138, width: 54, height: 52 }}
@@ -124,6 +156,7 @@ export function PrintScene({
           <p className="whitespace-nowrap font-display text-[36px] font-medium leading-[44px] text-black">
             {INTRO.headline}
           </p>
+        </motion.div>
         </motion.div>
       </motion.div>
 
