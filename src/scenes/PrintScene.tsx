@@ -23,8 +23,8 @@ export const PAPER_TOP = MACHINE_Y + EXIT_Y
  * it has finished arriving.
  */
 export const AT = {
-  flag: 0.3,
-  namer: 0.5,
+  flag: 0.25,
+  namer: 0.42,
   /*
    * The heading and the machine are one arrival, in the middle of the card.
    *
@@ -35,18 +35,21 @@ export const AT = {
    * distance: that is what makes them read as one thing rather than as two
    * that agree.
    */
-  headline: 0.7,
+  headline: 0.58,
   /*
    * And then the pair of them go up together, as the block they are.
    */
-  rise: 1.45,
+  rise: 1.25,
   /*
-   * The slip starts coming out on that move, not after it. Waiting for the
-   * block to arrive before printing is a second of a settled card doing
-   * nothing; leaving on the same beat, the rise is what the printing starts
-   * from rather than something that has to finish first.
+   * The slip is already on its way out before the block has finished arriving.
+   *
+   * Lining the feed up with the rise still left a gap, because the feed is
+   * where the paper starts *moving* and not where it starts being visible —
+   * it has a slot to clear first. Started under the arrival, the first of the
+   * slip is at the lip exactly as the machine finishes fading in, so there is
+   * no moment of a complete printer with an empty mouth.
    */
-  feed: 1.45,
+  feed: 1.0,
 }
 
 /** Everything in this opening arrives on this, so that it arrives as a piece. */
