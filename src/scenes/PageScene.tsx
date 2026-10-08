@@ -25,8 +25,18 @@ export function PageScene({
   lede = true,
   ticks = RAIL_TICKS,
   steps = RAIL_STEPS,
+  height = 2741,
 }: {
   show: boolean
+  /**
+   * How tall the page this is laid out on actually is.
+   *
+   * It used to be `inset-0`, which inside the scroller is the frame — 915 —
+   * so anything further down than one viewport was clipped out of existence.
+   * The ruler runs to 1465 and its last step sits at 1085, so step 4 simply
+   * did not exist beside the eSIM card however far you scrolled to it.
+   */
+  height?: number
   /** The gift line. The map variant has no gift to announce. */
   lede?: boolean
   ticks?: Tick[]
@@ -45,11 +55,11 @@ export function PageScene({
    */
   return (
     <motion.div
-      className="absolute inset-0 overflow-hidden rounded-[40px] bg-canvas"
+      className="absolute left-0 top-0 w-full overflow-hidden rounded-[40px] bg-canvas"
       initial={{ opacity: 0 }}
       animate={{ opacity: show ? 1 : 0 }}
       transition={{ duration: 0.9, ease: 'easeInOut' }}
-      style={{ pointerEvents: show ? 'auto' : 'none' }}
+      style={{ height, pointerEvents: show ? 'auto' : 'none' }}
     >
       <motion.p
         className="absolute whitespace-nowrap font-display text-[32px] font-medium leading-[40px] text-[#1c1f21]"

@@ -47,7 +47,7 @@ export function MapPage({
 
   return (
     <>
-      <PageScene show={show} lede={false} ticks={MAP_RAIL_TICKS} steps={MAP_RAIL_STEPS} />
+      <PageScene show={show} lede={false} ticks={MAP_RAIL_TICKS} steps={MAP_RAIL_STEPS} height={MAP_PAGE_H} />
 
       <div className="absolute left-0 top-0 w-full" style={{ height: MAP_PAGE_H }}>
         <motion.p

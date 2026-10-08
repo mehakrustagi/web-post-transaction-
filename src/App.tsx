@@ -46,12 +46,11 @@ const BEATS = [
 
 /** How far the page has scrolled at each stop, in frame pixels. */
 /**
- * One stop, and it ends on the eSIM card.
+ * Where the tour stops, which is the eSIM card.
  *
- * The page carries on below it, but the tour does not: everything the sequence
- * is introducing is on screen by here, and the two stops past this were the
- * page scrolling for its own sake. The floor matches, so a hand on the wheel
- * stops where the tour does rather than running off into the rest of the page.
+ * Everything the sequence is introducing is on screen by here, and the two
+ * stops past this were the page scrolling for its own sake. The page itself
+ * carries on below — this is only the list of places the tour drives to.
  */
 const SCROLL: Record<string, number> = {
   page: 0,
@@ -63,9 +62,14 @@ const SCROLL: Record<string, number> = {
  * the clock — so a block still arrives when the page is scrolled by hand past
  * the point the tour would have stopped at.
  */
-const STOPS = ['page', 'offers'] as const
+/*
+ * And the blocks still arrive as they are scrolled to, all the way down. A
+ * block that the tour never drives to is a block the reader can still reach.
+ */
+const STOPS = ['page', 'offers', 'explore', 'more'] as const
 type Stop = (typeof STOPS)[number]
-const stopAt = (y: number): Stop => (y > -400 ? 'page' : 'offers')
+const stopAt = (y: number): Stop =>
+  y > -400 ? 'page' : y > -1000 ? 'offers' : y > -1600 ? 'explore' : 'more'
 
 const clamp = (v: number) => Math.min(0, Math.max(FLOOR, v))
 

@@ -78,7 +78,22 @@ const RISE_UP = { duration: 0.95, ease: [0.5, 0, 0.2, 1] as const }
  * the slip's box is centred on the frame, its own centre sits half a sheet
  * below the slot, and the fall has already carried it REST_Y further down.
  */
-const AWAY_SCALE = 0.34
+/**
+ * How small the slip is by the time it has merged.
+ *
+ * It was 0.34, which is 160 tall around the frame's middle — the thanks line
+ * runs to about 407 and the slip's top landed at 377, so the paper finished
+ * its recede sitting across the last word of it.
+ */
+const AWAY_SCALE = 0.19
+/**
+ * And it settles a little below the middle rather than on it.
+ *
+ * Size alone does not clear the line: even at this scale the slip's top is
+ * within a few pixels of the text, and a few pixels is near enough to read as
+ * touching. Below the middle there is nothing else on the card.
+ */
+const MERGE_DROP = 26
 const FRAME_MID = 915 / 2
 const REST_CX = 641
 const REST_CY = PAPER_TOP + PAPER_H / 2
@@ -92,7 +107,7 @@ const REST_CY = PAPER_TOP + PAPER_H / 2
  */
 const AWAY = {
   x: 641 - REST_CX,
-  y: FRAME_MID - REST_CY - REST_Y * AWAY_SCALE,
+  y: FRAME_MID + MERGE_DROP - REST_CY - REST_Y * AWAY_SCALE,
   scale: AWAY_SCALE,
 }
 
