@@ -139,6 +139,28 @@ export const OFFERS = [
   },
 ] as const
 
+/** What an upsell card needs, loosened off `OFFERS` so a variant can vary it. */
+export type Offer = {
+  kicker: string
+  top: number
+  icon: string
+  art: { src: string; left: number; top: number; width: number; height: number; opacity: number; flip: boolean }
+  bg: string
+  title: string
+  blurb: string
+  figureLabel: string
+  figure: string
+  figureGrad: string
+  counter: string
+  rowsLabel: string
+  rowsRight: string
+  rows: readonly (readonly [string, string])[]
+  footnote: string
+  underline: boolean
+  cta: string
+  ribbon: string
+}
+
 export const EXPLORE = {
   heading: '60% of travellers club these countries in one trip!',
   blurb:
@@ -186,3 +208,26 @@ export const RAIL_STEPS = [
   { top: 694, value: '3' },
   { top: 1085, value: '4' },
 ]
+
+/**
+ * The map variant's page has one step, not three, so its ruler stops where the
+ * card does (438:16680). Same two runs either side of the number.
+ */
+export const MAP_RAIL_TICKS: [number, number][] = [
+  [270, 303],
+  [353, 597],
+].flatMap(([from, to]) => {
+  const out: [number, number][] = []
+  for (let y = from; y < to; y += 11) out.push([y, ARROWS.has(y) ? ARROW_W[y] : 21])
+  return out
+})
+
+export const MAP_RAIL_STEPS = [{ top: 303, value: '2' }]
+
+/** The one card on that page: the eSIM, with the orb where its mesh was. */
+export const MAP_OFFER: Offer = {
+  ...OFFERS[1],
+  kicker: 'Best to have upon touchdown',
+  top: 296,
+  ribbon: 'CHEAPEST',
+}

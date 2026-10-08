@@ -223,6 +223,7 @@ export default function App() {
                 transition={{ duration: 0.55, ease: 'easeInOut' }}
               >
                 <PrintScene
+                  hero={step === 'printing'}
                   leaving={step !== 'printing'}
                   detached={step === 'detached'}
                   onRest={onRest}

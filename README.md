@@ -21,6 +21,34 @@ npm run dev
 
 Click anywhere to replay.
 
+## The map variant
+
+`/map` is a second sequence that shares the opening and replaces everything
+after it (`MapApp`). The slip is printed and torn off exactly as before, then:
+
+- it **turns on its side** and travels from where the printer left it to the
+  left of the card, in one movement — `REST` is not a choice, it is where
+  `PrintRig` puts the sheet down;
+- a **line comes down its edge and walks right**, printing the world behind it.
+  Same vertical edge and same dust as the headline reveal, because it is the
+  same idea: something is being read off one thing and written onto another;
+- the **routes draw** and Vietnam lights up;
+- the map's **dots gather into the orb**, which then takes its place in the
+  eSIM card on the page.
+
+`WorldDots` is a canvas, not SVG: there are 8,476 dots and every one has to be
+able to leave the map and take a seat on the sphere, which as elements is a
+repaint no browser will do sixty times a second. Each dot carries two positions
+for its whole life — its place on the map and its place on the sphere — and
+`morph` slides it between them, so the orb is *made of* the map rather than
+replacing it. The positions are baked into `features/map/dots.ts` by
+`dotted-map` once; the package itself is not a dependency.
+
+The landing page (438:16680) is the other variant's with the gift taken out:
+no black card, no travel insurance, so the eSIM is step two and the orb is its
+artwork. `PageScene`, `OfferCard` and `CountryCard` are shared; only the
+layout around them differs.
+
 ## Layout
 
 The design is a run of fixed 1282 × 915 frames, so `App.tsx` lays everything

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { EXPLORE, LINKS, OFFERS } from '../content'
+import { EXPLORE, LINKS, type Offer, OFFERS } from '../content'
 
 const A = '/assets'
 const EASE = [0.22, 0.8, 0.3, 1] as const
@@ -114,12 +114,20 @@ function Rule({ top, show }: { top: number; show: boolean }) {
  * rule, then a figure with a stepper on the left and a table on the right.
  * Only the fill, the artwork and the words change.
  */
-function OfferCard({ offer }: { offer: (typeof OFFERS)[number] }) {
+export function OfferCard({
+  offer,
+  art = true,
+}: {
+  offer: Offer
+  /** False when something outside the card is flying into its artwork slot. */
+  art?: boolean
+}) {
   return (
     <div
       className="relative overflow-hidden rounded-[24px]"
       style={{ width: 785, height: 300, backgroundImage: offer.bg }}
     >
+      {art && (
       <img
         src={`${A}/${offer.art.src}`}
         alt=""
@@ -134,6 +142,7 @@ function OfferCard({ offer }: { offer: (typeof OFFERS)[number] }) {
           transform: offer.art.flip ? 'scaleY(-1)' : undefined,
         }}
       />
+      )}
 
       <img
         src={`${A}/${offer.icon}`}
@@ -269,7 +278,7 @@ function OfferCard({ offer }: { offer: (typeof OFFERS)[number] }) {
 }
 
 /** One of the three neighbouring countries. */
-function CountryCard({ card }: { card: (typeof EXPLORE.cards)[number] }) {
+export function CountryCard({ card }: { card: (typeof EXPLORE.cards)[number] }) {
   return (
     <div className="relative h-[315px] w-[206px] overflow-hidden rounded-[24px] border border-light200 bg-white">
       <div className="absolute left-[8px] top-[11px] h-[188px] w-[182px] overflow-hidden rounded-[16px]">

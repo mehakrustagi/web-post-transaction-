@@ -1,5 +1,8 @@
 import { motion } from 'framer-motion'
 import { PAGE, RAIL_STEPS, RAIL_TICKS, STEPS } from '../content'
+
+type Tick = [number, number]
+type Step = { top: number; value: string }
 import { CARD } from './GiftScene'
 
 const A = '/assets'
@@ -17,7 +20,18 @@ const BAR_H = 5
  * time this mounts — the card is the thing the previous frame condensed into,
  * so this scene deliberately draws no card of its own. `App` stacks the two.
  */
-export function PageScene({ show }: { show: boolean }) {
+export function PageScene({
+  show,
+  lede = true,
+  ticks = RAIL_TICKS,
+  steps = RAIL_STEPS,
+}: {
+  show: boolean
+  /** The gift line. The map variant has no gift to announce. */
+  lede?: boolean
+  ticks?: Tick[]
+  steps?: Step[]
+}) {
   const rise = (i: number) => ({
     initial: { opacity: 0, y: 14 },
     animate: show ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 },
@@ -74,13 +88,14 @@ export function PageScene({ show }: { show: boolean }) {
       </motion.button>
 
       <StepBar show={show} />
-      <Rail show={show} />
+      <Rail show={show} ticks={ticks} steps={steps} />
 
       {/*
         The one line of colour on the page. The gradient starts black and only
         turns over partway along, so the sentence reads as plain text until it
         gets to the gift.
       */}
+      {lede && (
       <motion.p
         className="absolute bg-clip-text text-[20px] font-semibold leading-[25px] tracking-[-0.8px] text-transparent"
         style={{
@@ -94,6 +109,7 @@ export function PageScene({ show }: { show: boolean }) {
       >
         {PAGE.lede}
       </motion.p>
+      )}
 
     </motion.div>
   )
@@ -104,7 +120,7 @@ export function PageScene({ show }: { show: boolean }) {
  * done segment. The segments are not evenly spaced — those numbers come off
  * the design's own export, not a guess.
  */
-function StepBar({ show }: { show: boolean }) {
+export function StepBar({ show }: { show: boolean }) {
   const head = STEPS[0]
 
   return (
@@ -164,7 +180,15 @@ function StepBar({ show }: { show: boolean }) {
  * leaves. The ticks are plain rules in the design — degenerate zero-height
  * vectors — so they are drawn rather than fetched as 28 near-identical files.
  */
-function Rail({ show }: { show: boolean }) {
+export function Rail({
+  show,
+  ticks = RAIL_TICKS,
+  steps = RAIL_STEPS,
+}: {
+  show: boolean
+  ticks?: Tick[]
+  steps?: Step[]
+}) {
   return (
     <motion.div
       className="absolute left-0 top-0 w-full"
@@ -173,14 +197,14 @@ function Rail({ show }: { show: boolean }) {
       animate={{ opacity: show ? 1 : 0 }}
       transition={{ delay: show ? 0.55 : 0, duration: 0.7 }}
     >
-      {RAIL_TICKS.map(([top, w]) => (
+      {ticks.map(([top, w]) => (
         <span
           key={top}
           className="absolute h-px bg-light200"
           style={{ top, left: 230 - w / 2, width: w }}
         />
       ))}
-      {RAIL_STEPS.map((step) => (
+      {steps.map((step) => (
         <div
           key={step.value}
           className="absolute flex flex-col items-center"
@@ -231,7 +255,7 @@ export function RibbonFold({ show }: { show: boolean }) {
 }
 
 /** The flash across the card's top-right corner, which lies over it. */
-export function Ribbon({ show }: { show: boolean }) {
+export function Ribbon({ show, label = PAGE.ribbon }: { show: boolean; label?: string }) {
   return (
     <motion.div
       className="absolute left-0 top-0 h-full w-full"
@@ -262,7 +286,7 @@ export function Ribbon({ show }: { show: boolean }) {
         style={{ left: 980.61, top: 345.2, width: 90.557, height: 36.817 }}
       >
         <span className="shrink-0 rotate-[15deg] whitespace-nowrap text-[11px] font-bold uppercase leading-[14px] tracking-[0.88px] text-white">
-          {PAGE.ribbon}
+          {label}
         </span>
       </span>
 

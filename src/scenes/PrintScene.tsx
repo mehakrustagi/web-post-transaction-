@@ -59,6 +59,7 @@ export function PrintScene({
   leaving,
   detached,
   onRest,
+  hero = true,
 }: {
   /*
    * The card's furniture goes before its background does, and before the slip
@@ -70,6 +71,12 @@ export function PrintScene({
   leaving: boolean
   detached: boolean
   onRest: () => void
+  /**
+   * Whether the flag, the country line and the headline are still wanted. The
+   * map variant keeps them up while the slip turns and the map prints beside
+   * it, so the machine leaving and the heading leaving are two things.
+   */
+  hero?: boolean
 }) {
   return (
     <div className="absolute inset-0 overflow-hidden rounded-[40px]">
@@ -89,7 +96,7 @@ export function PrintScene({
       />
       <motion.div
         className="absolute inset-0"
-        animate={{ opacity: leaving ? 0 : 1, y: leaving ? -12 : 0 }}
+        animate={{ opacity: hero ? 1 : 0, y: hero ? 0 : -12 }}
         transition={{ duration: 0.45, ease: 'easeIn' }}
       >
         {/*
