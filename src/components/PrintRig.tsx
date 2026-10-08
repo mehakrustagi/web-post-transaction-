@@ -431,6 +431,7 @@ export function PrintRig({
   away,
   onRest,
   onPrinted,
+  onTearing,
 }: {
   delay?: number
   /** The machine and the tail in its mouth go; the slip stays. */
@@ -452,6 +453,8 @@ export function PrintRig({
   onRest?: () => void
   /** The whole slip is out of the machine — before the tear, before the drop. */
   onPrinted?: () => void
+  /** And the cut has started running. */
+  onTearing?: () => void
 }) {
   const rig = useRef<HTMLDivElement>(null)
   const sheet = useRef<HTMLDivElement>(null)
@@ -470,6 +473,8 @@ export function PrintRig({
   rest.current = onRest
   const printed = useRef(onPrinted)
   printed.current = onPrinted
+  const tearing = useRef(onTearing)
+  tearing.current = onTearing
   /*
    * Read, not depended on. `useReducedMotion` reports `null` on the first
    * render and resolves to a boolean after it, and with that value in the
@@ -645,6 +650,7 @@ export function PrintRig({
       cls('flapped', true)
       sheet.current!.style.transform = `translateY(${REST_Y}px)`
       printed.current?.()
+      tearing.current?.()
       rest.current?.()
       return
     }
@@ -722,6 +728,7 @@ export function PrintRig({
        */
       const tension = slack
       cls('torn', true)
+      tearing.current?.()
       const TEAR_MS = 820
       /*
        * The cut and the curl are one event, not two.

@@ -20,22 +20,23 @@ const FLOOR = -(PAGE_H - FRAME_H)
  * every printed line and so takes as long as the slip is long.
  */
 const BEATS = [
-  /* The printer and the headline leave, so the slip has the frame to itself. */
-  { at: 0.47, step: 'clearing' },
-  /* The slip shrinks back to the middle; the card turns over behind it at the
-     same moment, which is the only time the two cards share the screen. */
-  { at: 0.94, step: 'detached' },
+  /* The printer goes. The heading has been gone since the cut started. */
+  { at: 0.12, step: 'clearing' },
+  /* And the slip shrinks straight back into the gift, which is what the cut
+     was for — the card turns over behind it at the same moment, the only time
+     the two cards share the screen. */
+  { at: 0.45, step: 'detached' },
   /* The bare card and the truck's arrival say the same thing, so the gap
      between them is only as long as it takes the vehicle to appear. */
-  { at: 2.03, step: 'gift' },
+  { at: 1.55, step: 'gift' },
   /* Long enough to hold the line unrevealed, sweep it, and then look at it. */
-  { at: 3.9, step: 'pickup' },
-  { at: 7.49, step: 'detail' },
-  { at: 9.83, step: 'page' },
+  { at: 3.4, step: 'pickup' },
+  { at: 7.0, step: 'detail' },
+  { at: 9.3, step: 'page' },
   /* The page carries on below the fold, so it takes itself down it. */
-  { at: 12.32, step: 'offers' },
-  { at: 15.29, step: 'explore' },
-  { at: 17.94, step: 'more' },
+  { at: 11.8, step: 'offers' },
+  { at: 14.8, step: 'explore' },
+  { at: 17.4, step: 'more' },
 ] as const
 
 /** How far the page has scrolled at each stop, in frame pixels. */
@@ -58,10 +59,10 @@ const stopAt = (y: number): Stop =>
 
 const clamp = (v: number) => Math.min(0, Math.max(FLOOR, v))
 
-type Step = (typeof BEATS)[number]['step'] | 'printing'
+type Step = (typeof BEATS)[number]['step'] | 'printing' | 'tearing'
 
 /** While one of these is current, the light card is the one on screen. */
-const PRINT_STEPS: Step[] = ['printing', 'clearing']
+const PRINT_STEPS: Step[] = ['printing', 'tearing', 'clearing']
 /** While one of these is current, the slip is still somewhere on screen. */
 const SLIP_STEPS: Step[] = [...PRINT_STEPS, 'detached']
 const DARK_BEATS: Beat[] = ['gift', 'pickup', 'detail']
@@ -115,7 +116,18 @@ export default function App() {
     [step, y],
   )
 
-  /* The rig calls this when the slip has stopped swinging. */
+  /*
+   * The rig calls this the moment the cut starts running.
+   *
+   * Everything that was keeping the slip company goes here rather than after
+   * it has landed: the heading and the country line are what the slip was
+   * printed under, and once it is being cut free they are the old frame. The
+   * machine and the paper close up to the middle of the card together, so what
+   * is left being torn is the only thing on screen.
+   */
+  const onTearing = useCallback(() => setStep((s) => (s === 'printing' ? 'tearing' : s)), [])
+
+  /* And this when the slip has stopped swinging. */
   const onRest = useCallback(() => {
     timers.current.forEach(clearTimeout)
     timers.current = BEATS.map((b) => window.setTimeout(() => setStep(b.step), b.at * 1000))
@@ -229,8 +241,12 @@ export default function App() {
               >
                 <PrintScene
                   hero={step === 'printing'}
-                  leaving={step !== 'printing'}
+                  /* The machine stays for the cut — it is the thing doing the
+                     cutting — and goes once the slip is down. */
+                  leaving={step !== 'printing' && step !== 'tearing'}
+                  centre={step !== 'printing'}
                   detached={step === 'detached'}
+                  onTearing={onTearing}
                   onRest={onRest}
                 />
               </motion.div>

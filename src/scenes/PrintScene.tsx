@@ -64,6 +64,13 @@ const RISE = 18
  * below where it ends up.
  */
 const DROP = 172
+/**
+ * How far the pair of them lift to sit centred once the heading has gone.
+ *
+ * The machine's top is at 329 and the slip's foot reaches about 854, so the
+ * block's own middle is at 591 against the frame's 457.
+ */
+const CENTRE_Y = -134
 const RISE_UP = { duration: 0.95, ease: [0.5, 0, 0.2, 1] as const }
 
 /**
@@ -86,6 +93,8 @@ export function PrintScene({
   detached,
   onRest,
   onPrinted,
+  onTearing,
+  centre = false,
   hero = true,
   handOver = false,
   fill = true,
@@ -102,6 +111,17 @@ export function PrintScene({
   onRest: () => void
   /** Passed through from the rig: the slip is fully out of the machine. */
   onPrinted?: () => void
+  /** And that the cut has started. */
+  onTearing?: () => void
+  /**
+   * Bring the machine and the slip hanging off it to the middle of the frame.
+   *
+   * They are printed where the heading leaves room for them, which is not the
+   * middle of anything — once the heading has gone there is nothing else on
+   * the card, and a printer sitting high with a slip hanging below it reads as
+   * a thing waiting for the rest of its layout to come back.
+   */
+  centre?: boolean
   /**
    * Whether the flag, the country line and the headline are still wanted. The
    * map variant keeps them up while the slip turns and the map prints beside
@@ -148,8 +168,8 @@ export function PrintScene({
       <motion.div
         className="absolute inset-0"
         initial={{ y: DROP }}
-        animate={{ y: 0 }}
-        transition={{ delay: AT.rise, ...RISE_UP }}
+        animate={{ y: centre ? CENTRE_Y : 0 }}
+        transition={centre ? { duration: 0.75, ease: [0.4, 0, 0.2, 1] } : { delay: AT.rise, ...RISE_UP }}
       >
       <motion.div
         className="absolute inset-0"
@@ -240,11 +260,12 @@ export function PrintScene({
       >
         <PrintRig
           onPrinted={onPrinted}
+          onTearing={onTearing}
           delay={AT.feed}
           leaving={leaving}
           detached={detached}
           handOver={handOver}
-          away={AWAY}
+          away={centre ? { ...AWAY, y: AWAY.y - CENTRE_Y } : AWAY}
           onRest={onRest}
         />
       </motion.div>
