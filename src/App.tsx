@@ -31,12 +31,18 @@ const BEATS = [
   { at: 1.55, step: 'gift' },
   /* Long enough to hold the line unrevealed, sweep it, and then look at it. */
   { at: 3.4, step: 'pickup' },
-  { at: 7.0, step: 'detail' },
-  { at: 9.3, step: 'page' },
+  /*
+   * Straight off the back of the reveal. The sweep now finishes at about 5.2
+   * and this used to wait until 7, which is nearly two seconds of a revealed
+   * line being looked at after it has finished revealing — long past the point
+   * where the next thing is what you are waiting for.
+   */
+  { at: 5.6, step: 'detail' },
+  { at: 7.9, step: 'page' },
   /* The page carries on below the fold, so it takes itself down it. */
-  { at: 11.8, step: 'offers' },
-  { at: 14.8, step: 'explore' },
-  { at: 17.4, step: 'more' },
+  { at: 10.4, step: 'offers' },
+  { at: 13.4, step: 'explore' },
+  { at: 16.0, step: 'more' },
 ] as const
 
 /** How far the page has scrolled at each stop, in frame pixels. */

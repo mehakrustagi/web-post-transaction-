@@ -41,9 +41,9 @@ export const CARD = { x: 281, y: 336, w: 785, h: 300, r: 24 }
  * GROUND_LINE is where the ground falls in the plate, as a fraction of its
  * height. Every `top` is derived from it, so the wheels land on it.
  */
-const GROUND_ASPECT = 2600 / 1856
+const GROUND_ASPECT = 3200 / 2284
 const GROUND_LINE = 0.731
-const TRUCK_ASPECT = 2200 / 731
+const TRUCK_ASPECT = 3068 / 1019
 
 /** Ground line, truck height, and the truck's centre, per frame. */
 const SHOT = {

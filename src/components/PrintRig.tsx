@@ -688,9 +688,12 @@ export function PrintRig({
       let v = 0
       await frames((dt) => {
         const onLine = bands.some(([a, b]) => y >= a && y <= b)
-        let target = onLine ? 115 : 250
+        /* Quicker on both counts. The slip is 470 long and the crawl over each
+           printed line is what gives the feed its character, so the ratio
+           between the two is kept and the whole thing simply runs faster. */
+        let target = onLine ? 168 : 365
         const left = H - y
-        if (left < 28) target = Math.max(38, left * 6)
+        if (left < 28) target = Math.max(56, left * 6)
         v += (target - v) * Math.min(1, dt * 6)
         y = Math.min(H, y + v * dt)
         setFeed(y)
