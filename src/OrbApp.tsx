@@ -21,12 +21,12 @@ const FLOOR = -(MAP_PAGE_H - FRAME_H)
 const BEATS = [
   { at: 0.41, step: 'clearing' },
   { at: 0.98, step: 'crumble' },
-  { at: 4.8, step: 'card' },
+  { at: 3.85, step: 'card' },
   /* Once it has settled it stops being a thing flying over the page and
      becomes the card's artwork, drawn behind the card's own text. */
-  { at: 6.3, step: 'landed' },
-  { at: 7.6, step: 'explore' },
-  { at: 10.2, step: 'more' },
+  { at: 5.35, step: 'landed' },
+  { at: 6.65, step: 'explore' },
+  { at: 9.25, step: 'more' },
 ] as const
 
 type Step = (typeof BEATS)[number]['step'] | 'printing'
@@ -75,8 +75,11 @@ export default function OrbApp() {
     byHand.current = false
     setStop('page')
     y.set(0)
+    spin.set(0)
+    tint.set(0)
     return () => timers.current.forEach(clearTimeout)
-  }, [run, still, y])
+  }, [run, still, y, spin, tint])
+
 
   const onWheel = useCallback(
     (e: React.WheelEvent) => {
@@ -105,6 +108,23 @@ export default function OrbApp() {
    */
   const showPrint = !page
   const beat: OrbBeat = dusting ? (step as OrbBeat) : page ? 'card' : 'rest'
+
+
+  /*
+   * The orb's turning outlives the scene that gave it to us: that scene is
+   * unmounted when the orb becomes the card's artwork, so an animation started
+   * inside it would stop there. Driven from here it simply carries on.
+   */
+  const turning = step === 'crumble' || page
+  useEffect(() => {
+    if (still || !turning) return
+    const run = animate(spin, Math.PI * 2, { duration: 34, ease: 'linear', repeat: Infinity })
+    const warming = animate(tint, 1, { duration: 1.5, ease: 'easeInOut' })
+    return () => {
+      run.stop()
+      warming.stop()
+    }
+  }, [turning, spin, tint, still])
 
   return (
     <SparklesProvider>

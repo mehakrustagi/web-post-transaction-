@@ -56,7 +56,12 @@ export function OrbScene({
   tint,
 }: {
   beat: OrbBeat
-  /** Handed in, so the orb keeps turning through the hand-over to the card. */
+  /**
+   * Both handed in and both driven by the app, not here. This scene is
+   * unmounted the moment the orb becomes the card's artwork, and an animation
+   * started in it would be stopped by that unmount — which is exactly what
+   * left the sphere frozen on the last page.
+   */
   spin: MotionValue<number>
   /** How far its gradient has travelled towards the card's own. */
   tint: MotionValue<number>
@@ -91,25 +96,6 @@ export function OrbScene({
     return () => run.stop()
   }, [crumbling, morph, still])
 
-  useEffect(() => {
-    if (still || !crumbling) return
-    const run = animate(spin, Math.PI * 2, {
-      duration: 34,
-      ease: 'linear',
-      repeat: Infinity,
-      delay: GATHER_S * 0.5,
-    })
-    /*
-     * And its colour walks to the card's while it does. By the time the
-     * surface closes in, the orb is already wearing what it will wear there —
-     * which is what lets the hand-over to the card's own copy be invisible.
-     */
-    const warming = animate(tint, 1, { duration: 2.2, ease: 'easeInOut' })
-    return () => {
-      run.stop()
-      warming.stop()
-    }
-  }, [crumbling, spin, tint, still])
 
   const flap = useMemo(() => flapPath(PAPER_W), [])
 

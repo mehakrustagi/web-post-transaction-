@@ -96,7 +96,12 @@ export function MapScene({
   tint,
 }: {
   beat: MapBeat
-  /** Handed in, so the orb keeps turning through the hand-over to the card. */
+  /**
+   * Both handed in and both driven by the app, not here. This scene is
+   * unmounted the moment the orb becomes the card's artwork, and an animation
+   * started in it would be stopped by that unmount — which is exactly what
+   * left the sphere frozen on the last page.
+   */
   spin: MotionValue<number>
   /** How far its gradient has travelled towards the card's own. */
   tint: MotionValue<number>
