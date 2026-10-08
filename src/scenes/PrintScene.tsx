@@ -28,18 +28,23 @@ export const AT = {
   headline: 1.15,
   lift: 2.2,
   /*
-   * After the headline has landed, not during. Arriving mid-glide it crossed
-   * the text on its way up, which read as two things fighting for the same
-   * piece of card.
+   * It comes up under the heading while the heading is still settling, and
+   * lands as it lands — the lift runs 2.2 to 3.35 and this runs 2.8 to 3.33.
+   *
+   * It was at 4.2, which put it a second and a half behind the text: long
+   * enough that the card sat finished and empty waiting for it, which reads as
+   * the thing having failed to arrive. The reason it was pushed back was the
+   * two of them appearing to fight over the same piece of card, and that is
+   * not what overlapping in time does here — the machine occupies 329 down and
+   * the heading never comes below 296, so they share the moment without ever
+   * sharing the space.
    */
-  machine: 4.2,
+  machine: 2.8,
   /*
-   * Only a breath after the machine, not a pause. Left at two thirds of a
-   * second this was long enough to screenshot: a printer sitting there with
-   * an empty mouth, which reads as the thing having stalled rather than as
-   * the beat before it starts.
+   * And only then does it print. This used to be *before* the machine, which
+   * meant the slip began feeding out of a box that had not turned up yet.
    */
-  feed: 3.25,
+  feed: 3.45,
 }
 
 /** How far down the group starts: enough to sit centred on the frame. */
