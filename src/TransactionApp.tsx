@@ -35,17 +35,33 @@ const FLOOR = -(MAP_PAGE_H - FRAME_H)
  * point, not slack to be tightened out.
  */
 const AFTER = [
-  /* The launch, and the receipt leaving on it. */
-  { at: 0, step: 'fire' },
-  /* A clear beat later than the receipt's 0.78s exit, so the page is coming
-     up into an empty frame rather than past a slip still on its way out. */
-  { at: 0.9, step: 'card' },
-  { at: 1.8, step: 'landed' },
-  { at: 3.2, step: 'explore' },
-  { at: 5.8, step: 'more' },
+  /*
+   * Half a second after the slip is down. The receipt is allowed to land and
+   * be read before anything starts taking it away — arriving on the same beat
+   * it settled, the colour was competing with it.
+   */
+  { at: 0.5, step: 'cook' },
+  /* Up it goes, and the card goes with it. */
+  { at: 1.9, step: 'fire' },
+  /*
+   * A third of a second into the launch — while the sheet is over everything
+   * from the heading down, not after it has gone. Swapping once it had passed
+   * left the frame genuinely empty for a beat, which is the one thing worse
+   * than an overlap. Hidden under an opaque wash, the overlap costs nothing:
+   * the card goes and the page starts climbing in the same covered moment,
+   * and what you actually see is the tail of that climb as the sheet clears.
+   */
+  { at: 2.25, step: 'card' },
+  { at: 3.1, step: 'landed' },
+  { at: 4.5, step: 'explore' },
+  { at: 7.1, step: 'more' },
 ] as const
 
-type Step = (typeof AFTER)[number]['step'] | 'printing'
+const ORDER = ['printing', 'cook', 'fire', 'card', 'landed', 'explore', 'more'] as const
+
+type Step = (typeof ORDER)[number]
+
+const reached = (step: Step, mark: Step) => ORDER.indexOf(step) >= ORDER.indexOf(mark)
 
 const clamp = (v: number) => Math.min(0, Math.max(FLOOR, v))
 const stopAt = (y: number): MapStop => (y > -300 ? 'page' : y > -740 ? 'explore' : 'more')
@@ -55,8 +71,6 @@ export default function TransactionApp() {
   const still = useReducedMotion()
   const [run, setRun] = useState(0)
   const [step, setStep] = useState<Step>('printing')
-  /** The slip is all the way out. Nothing about the card changes before this. */
-  const [printed, setPrinted] = useState(false)
   const timers = useRef<number[]>([])
 
   /* The card's artwork turns and warms exactly as it does on the orb page —
@@ -83,7 +97,6 @@ export default function TransactionApp() {
 
   useEffect(() => {
     setStep(still ? 'card' : 'printing')
-    setPrinted(false)
     byHand.current = false
     setStop('page')
     y.set(0)
@@ -110,21 +123,21 @@ export default function TransactionApp() {
 
   const landed = step === 'landed' || step in MAP_SCROLL
   const page = step === 'card' || landed
-  /*
-   * It warms up only once the slip is all the way out, and is at full strength
-   * by the time it lands. Started with the print it was colour arriving on a
-   * card that was still being worked on — there is nothing to transition away
-   * from until the thing being transitioned away from actually exists.
-   */
-  const cooking = printed && !page
-  const firing = step !== 'printing'
+  const cooking = reached(step, 'cook')
+  const firing = reached(step, 'fire')
   /*
    * The print scene stays mounted right up to the page. It owns the flag, the
    * country line and the headline — and their arrival — so keeping it is both
    * less code than a second copy of them and the only way they keep the
    * entrance they were written with.
    */
-  const showPrint = step === 'printing'
+  /*
+   * The card stays exactly where it is until the sheet has taken it. It used
+   * to fly up and out on its own curve at the same moment the wash went, which
+   * is two things leaving at once — the overlap. There is nothing for it to do
+   * here: it is removed by being passed over.
+   */
+  const showPrint = !reached(step, 'card')
 
   useEffect(() => {
     if (still || !page) return
@@ -162,6 +175,21 @@ export default function TransactionApp() {
               }}
             />
 
+            {/*
+              And what the card becomes. The last page climbs into frame from
+              below, so for the length of that climb there is a strip above it
+              with nothing of the page in it — against the card's own grey that
+              strip read as a band across the top. Switching the base to the
+              page's colour as the sheet fires means whatever is behind the
+              page on its way up is already the page's background.
+            */}
+            <motion.div
+              className="absolute inset-0 bg-canvas"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: firing ? 1 : 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            />
+
             {/* On the card, under the paper. */}
             <BloomWash cook={cooking} fire={firing} key={`wash-${run}`} />
 
@@ -171,18 +199,12 @@ export default function TransactionApp() {
                   key={`print-${run}`}
                   className="absolute inset-0 z-[2]"
                   initial={{ opacity: 1 }}
-                  /*
-                   * Swept up, not faded out. The wash launches at this exact
-                   * moment and the receipt is under the thickest part of it,
-                   * so it leaves on the wash's own curve rather than on its
-                   * own — the colour is not passing over a card that quietly
-                   * dissolves, it is taking the card with it.
-                   */
-                  exit={{ opacity: 0, y: -300 }}
-                  transition={{
-                    y: { duration: 0.78, ease: [0.72, 0, 0.24, 1] },
-                    opacity: { duration: 0.5, ease: 'easeIn' },
-                  }}
+                  /* Cut, not animated. By the time this unmounts the sheet is
+                     over the top of it, so anything it did here would be work
+                     nobody can see — and a card fading under an opaque wash is
+                     exactly the kind of second movement that reads as clutter. */
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.01 }}
                 >
                   <PrintScene
                     hero={!page}
@@ -191,16 +213,15 @@ export default function TransactionApp() {
                     handOver={false}
                     fill={false}
                     onRest={onRest}
-                    onPrinted={() => setPrinted(true)}
                   />
                 </motion.div>
               )}
             </AnimatePresence>
 
             {/*
-              The last page, pulled up into a frame the wash has just emptied.
-              It waits for the receipt to be gone rather than crossing it on
-              the way in — the two travelling at once is the clutter, not the
+              The last page, pulled up into a frame the sheet has just cleared.
+              It waits for the card to be gone rather than crossing it on the
+              way in — two things travelling at once is the clutter, not the
               speed.
             */}
             <motion.div
@@ -208,8 +229,10 @@ export default function TransactionApp() {
               initial={false}
               animate={{ y: page ? 0 : 150, opacity: page ? 1 : 0 }}
               transition={{
-                y: { duration: 0.86, ease: [0.18, 0.72, 0.24, 1] },
-                opacity: { duration: 0.5, ease: 'easeOut' },
+                y: { duration: 0.95, ease: [0.18, 0.72, 0.24, 1] },
+                /* Straight to full. It is behind the sheet when this runs, so
+                   a fade here is only a way of arriving half-there. */
+                opacity: { duration: 0.18, ease: 'easeOut' },
               }}
             >
             <motion.div className="absolute inset-0" style={{ y }}>

@@ -33,6 +33,10 @@ const RISE_MS = 900
  * launch, which is when it does have something to say.
  */
 const COOK = 0.82
+
+/** How its leading edge dissolves into the card in front of it. */
+const FEATHER =
+  'linear-gradient(to bottom, transparent 0px, rgba(0,0,0,0.10) 90px, rgba(0,0,0,0.34) 190px, rgba(0,0,0,0.72) 290px, black 380px, black 100%)'
 /** The launch. */
 const FIRE_MS = 780
 const FIRE_Y = 740
@@ -180,7 +184,16 @@ export function BloomWash({
      */
     <div
       className="pointer-events-none absolute inset-0 overflow-hidden rounded-[40px]"
-      style={{ zIndex: 1, mixBlendMode: 'multiply' }}
+      style={{
+        /*
+         * Under the paper while it cooks, so the receipt is not stained by it;
+         * over everything the moment it goes, because a wash that is meant to
+         * take the card with it cannot be behind the card. Multiply is for the
+         * tint — the sheet that does the wiping is opaque and blends normally.
+         */
+        zIndex: fired ? 3 : 1,
+        mixBlendMode: fired ? 'normal' : 'multiply',
+      }}
     >
       <div
         className="absolute left-0 top-0"
@@ -204,16 +217,11 @@ export function BloomWash({
                exactly what keeps the lower half covered. */
             height: 1240,
             isolation: 'auto',
-            /* The feathering flips once it has fired — it fades the wash out
-               at whichever edge it is travelling away from. Fixed, it would
-               put a hard line across the top the moment it arrived. */
-            transition: 'mask-image 0.5s ease',
-            maskImage: fired
-              ? 'linear-gradient(to bottom, black 0px, black 100%)'
-              : 'linear-gradient(to bottom, transparent 0px, rgba(0,0,0,0.10) 90px, rgba(0,0,0,0.34) 190px, rgba(0,0,0,0.72) 290px, black 380px, black 100%)',
-            WebkitMaskImage: fired
-              ? 'linear-gradient(to bottom, black 0px, black 100%)'
-              : 'linear-gradient(to bottom, transparent 0px, rgba(0,0,0,0.10) 90px, rgba(0,0,0,0.34) 190px, rgba(0,0,0,0.72) 290px, black 380px, black 100%)',
+            /* Feathered along its top edge the whole way, because that edge is
+               the one crossing the screen: it is what the card disappears
+               behind, and a hard line there is a shutter, not a wash. */
+            maskImage: FEATHER,
+            WebkitMaskImage: FEATHER,
           }}
           initial={{ opacity: 0, y: 120 }}
           animate={
@@ -257,36 +265,29 @@ export function BloomWash({
                 : { duration: RISE_MS / 1000, ease: [0.33, 0, 0.2, 1] }
           }
         >
-          <BloomFields />
-
           {/*
-            The white in it. Every field above multiplies, and multiplying by
-            white changes nothing — so white cannot be another stop in that
-            list, it has to be light added back. On plus-lighter this lifts a
-            broad band through the middle of the wash, which is what keeps the
-            teal and the blue reading as two colours either side of something
-            rather than as one band that changes hue.
+            The gradient itself, as a sheet rather than as a tint.
+            
+            While it is only cooking this is not there at all — the colour at
+            the foot of the card is the soft fields below, multiplied onto it,
+            which is what lets the slip stand on the card without being stained
+            by it. The moment it fires it becomes a real surface: the four
+            stops laid left to right, opaque, travelling up the frame. That is
+            the whole job — everything on the card goes because this passed
+            over it, not because it was separately asked to leave.
           */}
           <motion.div
-            className="absolute"
+            className="absolute inset-0"
             style={{
-              left: -120,
-              top: 300,
-              width: 700,
-              height: 300,
-              borderRadius: '50%',
-              background:
-                'radial-gradient(closest-side, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.6) 42%, rgba(255,255,255,0.22) 74%, rgba(255,255,255,0) 100%)',
-              filter: 'blur(78px)',
-              mixBlendMode: 'plus-lighter',
+              backgroundImage:
+                'linear-gradient(104deg, #118388 0%, #0F7080 34%, #4270D3 71%, #0E528D 100%)',
             }}
-            animate={{ x: [0, -64, 48, 0], scaleX: [1, 1.1, 0.95, 1], opacity: [0.72, 0.95, 0.72] }}
-            transition={{
-              x: { duration: 8.3, repeat: Infinity, ease: 'easeInOut' },
-              scaleX: { duration: 6.1, repeat: Infinity, ease: 'easeInOut' },
-              opacity: { duration: 4.7, repeat: Infinity, ease: 'easeInOut' },
-            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: fired ? 1 : 0 }}
+            transition={{ duration: fired ? 0.26 : 0.2, ease: 'easeOut' }}
           />
+
+          <BloomFields />
 
           {/* The floor pool. The drifting fields give the wash its movement,
               but movement alone reads as weightless — this is the ballast: a
