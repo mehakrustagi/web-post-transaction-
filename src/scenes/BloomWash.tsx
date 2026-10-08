@@ -118,9 +118,27 @@ const CARD_BG = 'linear-gradient(175.298deg, #0b5975 8.856%, #159d94 136.62%)'
 
 /** How long the surface takes to rise and cover everything before it closes. */
 const COVER_MS = 640
-/** How softly its leading edge dissolves into the card on the way up. */
-const SURGE =
-  'linear-gradient(to bottom, transparent 0px, rgba(0,0,0,0.35) 120px, black 260px, black 100%)'
+/**
+ * The disc, at the three sizes it is ever drawn at.
+ *
+ * It comes up out of the pool as a circle rather than as a rising edge: a
+ * straight edge crossing the frame is a wipe, and a wipe is a cut dressed up,
+ * where something round growing out of the colour that is already there reads
+ * as that colour becoming the thing it is about to hand you. It has to reach
+ * the frame's diagonal to cover the corners, which is why it ends up half as
+ * wide again as the frame itself.
+ */
+const SEED = { d: 120, cx: FRAME_W / 2, cy: FRAME_H + 70 }
+const FULL = { d: 1702, cx: FRAME_W / 2, cy: FRAME_H / 2 }
+const disc = (c: { d: number; cx: number; cy: number }) => ({
+  left: c.cx - c.d / 2,
+  top: c.cy - c.d / 2,
+  width: c.d,
+  height: c.d,
+  /* In pixels, not `50%`, so it can go on to be the card's own 24 — a radius
+     that is half the width at every size is a circle all the way up. */
+  borderRadius: c.d / 2,
+})
 /** And how long the close itself takes. */
 const CLOSE_MS = 1050
 
@@ -341,41 +359,30 @@ export function BloomWash({
       {fired && (
         <motion.div
           className="absolute overflow-hidden"
-          style={{
-            zIndex: 3,
-            backgroundImage: CARD_BG,
-            /* Soft-edged while it is surging up over the card, square once it
-               is closing — by then the edge is the card's own edge, and a
-               feathered card is not a card. */
-            maskImage: closing ? 'none' : SURGE,
-            WebkitMaskImage: closing ? 'none' : SURGE,
-            transition: 'mask-image .3s ease',
-          }}
+          style={{ zIndex: 3, backgroundImage: CARD_BG }}
           /*
-           * It comes up out of the pool rather than fading in over it. Faded,
-           * the screen went from a pale wash at the foot of the card to a
-           * saturated full-frame teal in a third of a second, which is two
-           * different things swapped rather than one thing growing — so it
-           * starts below the frame entirely and surges up through it, and the
-           * cooking colour goes as it arrives.
+           * Out of the pool, up the screen, and then down onto the card. One
+           * element through all three, because they are one move: what grows
+           * is what travels is what lands.
            */
-          initial={{ left: 0, top: FRAME_H, width: FRAME_W, height: FRAME_H, borderRadius: 0, opacity: 1 }}
-          animate={{
-            left: closing ? CARD.x : 0,
-            top: closing ? CARD.y : 0,
-            width: closing ? CARD.w : FRAME_W,
-            height: closing ? CARD.h : FRAME_H,
-            borderRadius: closing ? CARD.r : 0,
-            /* It only lets go once it is the card's own size and in the card's
-               own place, where the card underneath is identical to it — so the
-               hand-over is the content appearing, not the colour changing. */
-            opacity: beat === 'done' ? 0 : 1,
-          }}
+          initial={{ ...disc(SEED), opacity: 0 }}
+          animate={
+            closing
+              ? {
+                  left: CARD.x,
+                  top: CARD.y,
+                  width: CARD.w,
+                  height: CARD.h,
+                  borderRadius: CARD.r,
+                  opacity: beat === 'done' ? 0 : 1,
+                }
+              : { ...disc(FULL), opacity: 1 }
+          }
           transition={{
-            opacity: { duration: 0.26, ease: 'easeOut' },
+            opacity: { duration: beat === 'done' ? 0.26 : 0.22, ease: 'easeOut' },
             default: closing
               ? { duration: CLOSE_MS / 1000, ease: [0.5, 0, 0.18, 1] }
-              : { duration: COVER_MS / 1000, ease: [0.4, 0, 0.2, 1] },
+              : { duration: COVER_MS / 1000, ease: [0.33, 0, 0.2, 1] },
           }}
         />
       )}
