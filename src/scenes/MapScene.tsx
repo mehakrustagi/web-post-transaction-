@@ -63,6 +63,9 @@ const NO_CLIP = 'inset(0px 0px 0px 0px round 0px)'
 
 /** The orb's own width on the canvas, from `WorldDots`' own radius. */
 const ORB_D = Math.min(MAP_W, CANVAS_H) * 0.42 * 2
+/** The canvas this scene hands to the card — see `OrbScene`'s `HANDOVER`. */
+export const HANDOVER = { w: MAP_W, h: CANVAS_H, scale: CARD_SLOT.d / ORB_D }
+
 /** Where the canvas's middle sits once the strip has finished travelling. */
 const CANVAS_MID = { x: LINE_X + MAP_W / 2, y: CANVAS_TOP + CANVAS_H / 2 }
 

@@ -19,11 +19,17 @@ import { WorldDots } from './WorldDots'
  * frame or two, which read as the orb blinking out and coming back.
  */
 const SLOT = { x: 450, y: 157, w: 290, h: 280 }
-/** Sized so `WorldDots`' own radius comes out at the slot's width. */
-const W = (SLOT.w / 0.42 / 2) * (450 / 279)
-const H = SLOT.w / 0.42 / 2
 
-export function CardOrb({ show, spin }: { show: boolean; spin: MotionValue<number> }) {
+export function CardOrb({
+  show,
+  spin,
+  canvas,
+}: {
+  show: boolean
+  spin: MotionValue<number>
+  /** The canvas and scale the scene before this one was drawing, verbatim. */
+  canvas: { w: number; h: number; scale: number }
+}) {
   const reveal = useMotionValue(1)
   const morph = useMotionValue(1)
 
@@ -33,14 +39,18 @@ export function CardOrb({ show, spin }: { show: boolean; spin: MotionValue<numbe
       className="pointer-events-none absolute"
       /* Held back a little: it is the card's texture, not its subject. */
       style={{
-        left: SLOT.x + SLOT.w / 2 - W / 2,
-        top: SLOT.y + SLOT.h / 2 - H / 2,
+        left: SLOT.x + SLOT.w / 2 - canvas.w / 2,
+        top: SLOT.y + SLOT.h / 2 - canvas.h / 2,
+        width: canvas.w,
+        height: canvas.h,
+        transform: `scale(${canvas.scale})`,
+        transformOrigin: '50% 50%',
         opacity: show ? 0.6 : 0,
       }}
     >
       <WorldDots
-        width={W}
-        height={H}
+        width={canvas.w}
+        height={canvas.h}
         reveal={reveal}
         morph={morph}
         spin={spin}

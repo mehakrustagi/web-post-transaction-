@@ -26,6 +26,7 @@ export function MapPage({
   show,
   landed = false,
   spin,
+  canvas,
 }: {
   at: MapStop
   show: boolean
@@ -33,6 +34,8 @@ export function MapPage({
   landed?: boolean
   /** The turning it arrived with, which it carries on. */
   spin: MotionValue<number>
+  /** And the canvas it arrived on — see `CardOrb`. */
+  canvas: { w: number; h: number; scale: number }
 }) {
   const seen = (stop: MapStop) => MAP_STOPS.indexOf(at) >= MAP_STOPS.indexOf(stop)
 
@@ -64,7 +67,7 @@ export function MapPage({
           <OfferCard
             offer={MAP_OFFER}
             art={false}
-            slot={show ? <CardOrb show={landed} spin={spin} /> : null}
+            slot={show ? <CardOrb show={landed} spin={spin} canvas={canvas} /> : null}
           />
         </motion.div>
 

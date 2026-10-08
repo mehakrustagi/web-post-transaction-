@@ -38,7 +38,7 @@ export const AT = {
    * an empty mouth, which reads as the thing having stalled rather than as
    * the beat before it starts.
    */
-  feed: 3.65,
+  feed: 3.25,
 }
 
 /** How far down the group starts: enough to sit centred on the frame. */

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'framer-motion'
 import { Header } from './components/Header'
 import { PrintScene } from './scenes/PrintScene'
-import { OrbScene, type OrbBeat } from './scenes/OrbScene'
+import { HANDOVER, OrbScene, type OrbBeat } from './scenes/OrbScene'
 import { MAP_PAGE_H, MAP_SCROLL, MAP_STOPS, MapPage, type MapStop } from './scenes/MapPage'
 import { Ribbon } from './scenes/PageScene'
 import { SparklesProvider } from './components/ui/sparkles'
@@ -24,7 +24,7 @@ const BEATS = [
   { at: 4.5, step: 'card' },
   /* Once it has settled it stops being a thing flying over the page and
      becomes the card's artwork, drawn behind the card's own text. */
-  { at: 6.0, step: 'landed' },
+  { at: 5.9, step: 'landed' },
   { at: 7.3, step: 'explore' },
   { at: 9.9, step: 'more' },
 ] as const
@@ -184,7 +184,7 @@ export default function OrbApp() {
               transition={{ duration: 0.9, ease: 'easeInOut' }}
             />
 
-            <MapPage at={stop} show={page} landed={landed} spin={spin} />
+            <MapPage at={stop} show={page} landed={landed} spin={spin} canvas={HANDOVER} />
             <Ribbon show={page} label={MAP_OFFER.ribbon} />
 
             {(dusting || page) && !landed && <OrbScene spin={spin} tint={tint} key={`orb-${run}`} beat={beat} />}

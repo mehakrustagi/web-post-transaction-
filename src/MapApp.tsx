@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'framer-motion'
 import { Header } from './components/Header'
 import { PrintScene } from './scenes/PrintScene'
-import { MapScene, type MapBeat } from './scenes/MapScene'
+import { HANDOVER, MapScene, type MapBeat } from './scenes/MapScene'
 import { MAP_PAGE_H, MAP_SCROLL, MAP_STOPS, MapPage, type MapStop } from './scenes/MapPage'
 import { Ribbon } from './scenes/PageScene'
 import { SparklesProvider } from './components/ui/sparkles'
@@ -187,7 +187,7 @@ export default function MapApp() {
               transition={{ duration: 0.9, ease: 'easeInOut' }}
             />
 
-            <MapPage at={stop} show={page} landed={landed} spin={spin} />
+            <MapPage at={stop} show={page} landed={landed} spin={spin} canvas={HANDOVER} />
             <Ribbon show={page} label={MAP_OFFER.ribbon} />
 
             {(mapping || page) && !landed && <MapScene spin={spin} tint={tint} key={`map-${run}`} beat={beat} />}

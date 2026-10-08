@@ -32,6 +32,16 @@ const ORB_REST = { cx: 641, cy: 620, d: 430 }
 const CARD = { x: 281, y: 337, w: 785, h: 300, r: 24 }
 const CARD_SLOT = { cx: 450 + 145, cy: 157 + 140, d: 290 }
 
+/**
+ * The canvas this scene hands to the card, exactly as it is drawing it.
+ *
+ * The card's copy has to be the *same* canvas at the *same* scale, not another
+ * one sized to the same orb: a dot is drawn at a fixed number of canvas pixels,
+ * so a differently-sized canvas showing an identically-sized sphere draws the
+ * dots at a different size — which is the step you see at the swap.
+ */
+export const HANDOVER = { w: CANVAS, h: CANVAS, scale: 290 / ORB_D }
+
 /** The canvas's own middle, in the surface's coordinates. */
 const CANVAS_MID = { x: REST.cx, y: REST.cy }
 /** The sheet's own rectangle inside the canvas. */
@@ -127,13 +137,15 @@ export function OrbScene({
         width: carded ? CARD.w : 1282,
         height: carded ? CARD.h : 915,
         borderRadius: carded ? CARD.r : 40,
-        opacity: carded ? 0 : 1,
       }}
-      transition={{
-        default: { duration: SETTLE_S, ease: [0.5, 0, 0.2, 1] },
-        /* It hands the rectangle over to the card itself once it is there. */
-        opacity: { delay: carded ? SETTLE_S * 0.72 : 0, duration: SETTLE_S * 0.4 },
-      }}
+      /*
+       * No fade on the way in. It used to hand the rectangle over by fading
+       * itself out part-way through the settle, which took the orb with it —
+       * leaving the card empty for the best part of half a second before the
+       * card's own copy was revealed. The swap is the only hand-over there is,
+       * and it happens on `landed`.
+       */
+      transition={{ duration: SETTLE_S, ease: [0.5, 0, 0.2, 1] }}
     >
       {/*
         The sheet itself, which fades as its dots take over. They start on the
