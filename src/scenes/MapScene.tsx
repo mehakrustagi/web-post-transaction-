@@ -218,8 +218,8 @@ export function MapScene({
             >
               <defs>
                 <linearGradient id="turnedFold" gradientUnits="userSpaceOnUse" {...flap.grad}>
-                  <stop offset="0" stopColor="#E4E4E9" />
-                  <stop offset=".45" stopColor="#F7F7F9" />
+                  <stop offset="0" stopColor="#DCDCE3" />
+                  <stop offset=".45" stopColor="#F4F4F7" />
                   <stop offset="1" stopColor="#FFFFFF" />
                 </linearGradient>
               </defs>

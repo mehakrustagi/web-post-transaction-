@@ -129,20 +129,35 @@ export function paperClip(W: number, front: number, withFlap?: boolean) {
   return poly([...top, ...bottomZig(W)])
 }
 
-/** The folded corner: the tip reflected across the fold, with a soft bulge. */
+/**
+ * The folded corner: the tip reflected across the fold.
+ *
+ * Which means its free edges are the sheet's own edges, reflected — and one of
+ * them is the torn edge. A clean diagonal there is why the flap used to read as
+ * a separate shape laid over the slip rather than part of it, so the teeth are
+ * carried round the crease: the same cut, at the same pitch, in the same phase,
+ * continuing from exactly where the sheet's own tear leaves off.
+ */
 export function flapPath(W: number) {
   const ax = W - FW
   const ay = T + TD
   const bx = W
   const by = T + TD + FH
-  const ux = bx - ax
-  const uy = by - ay
-  const L = Math.hypot(ux, uy)
-  const nx = ux / L
-  const ny = uy / L
-  const d = (bx - ax) * nx
-  const rx = ax + 2 * d * nx - (bx - ax)
-  const ry = ay + 2 * d * ny
+  const L = Math.hypot(bx - ax, by - ay)
+  /** Along the crease, and across it. */
+  const nx = (bx - ax) / L
+  const ny = (by - ay) / L
+  const mx = -ny
+  const my = nx
+
+  /** A point of the sheet, as it lies once the corner has come over. */
+  const reflect = (px: number, py: number) => {
+    const dx = px - ax
+    const dy = py - ay
+    const d = dx * nx + dy * ny
+    return [ax + 2 * d * nx - dx, ay + 2 * d * ny - dy] as const
+  }
+
   /*
    * Every bow is a fraction of the fold's own length. Fixed at a few pixels —
    * which is what they were when the fold was a 40px corner — a fold this size
@@ -151,13 +166,39 @@ export function flapPath(W: number) {
    */
   const bulge = L * 0.055
   const slack = L * 0.045
-  const cx = (ax + bx) / 2 - ny * bulge
-  const cy = (ay + by) / 2 + nx * bulge
+
+  /*
+   * The torn edge, reflected and lifted. Paper that has flopped over does not
+   * lie flat against itself: the free edge stands away from the face, most of
+   * all at the tip, which has the least holding it down.
+   */
+  const teeth = tearLine(ax, W) as [number, number][]
+  const edge: [number, number][] = []
+  for (let i = teeth.length - 1; i >= 0; i--) {
+    const [tx, ty] = teeth[i]
+    const [px, py] = reflect(tx, ty)
+    const s = (tx - ax) / (W - ax)
+    const lift = Math.sin(s * Math.PI) * slack
+    edge.push([px + mx * lift, py + my * lift])
+  }
+
+  const [rx, ry] = edge[0]
+  const cx = (ax + bx) / 2 + mx * bulge
+  const cy = (ay + by) / 2 + my * bulge
+  const d =
+    `M${ax} ${ay} Q${cx} ${cy} ${bx} ${by}` +
+    ` Q${(bx + rx) / 2 + mx * slack} ${(by + ry) / 2 + my * slack} ${rx} ${ry}` +
+    edge
+      .slice(1)
+      .map(([x, y]) => `L${x.toFixed(2)} ${y.toFixed(2)}`)
+      .join('') +
+    'Z'
+
   return {
-    d: `M${ax} ${ay} Q${cx} ${cy} ${bx} ${by} Q${(bx + rx) / 2 + slack} ${(by + ry) / 2 + slack * 0.5} ${rx} ${ry} Q${(rx + ax) / 2 - slack * 0.6} ${(ry + ay) / 2 + slack} ${ax} ${ay} Z`,
+    d,
     grad: { x1: ax, y1: ay, x2: rx, y2: ry },
     origin: `${(ax + bx) / 2}px ${(ay + by) / 2}px`,
-    height: by + 30,
+    height: Math.max(by, ry) + 30,
   }
 }
 
@@ -685,8 +726,11 @@ export function PrintRig({
             >
               <defs>
                 <linearGradient id="flapFold" gradientUnits="userSpaceOnUse" {...f.grad}>
-                  <stop offset="0" stopColor="#E4E4E9" />
-                  <stop offset=".45" stopColor="#F7F7F9" />
+                  {/* Darkest in the crease, where the fold shades itself, and
+                      brightest at the free edge that is standing away from the
+                      face and catching the light. */}
+                  <stop offset="0" stopColor="#DCDCE3" />
+                  <stop offset=".45" stopColor="#F4F4F7" />
                   <stop offset="1" stopColor="#FFFFFF" />
                 </linearGradient>
               </defs>
