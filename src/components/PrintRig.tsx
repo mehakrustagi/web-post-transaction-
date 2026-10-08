@@ -49,9 +49,16 @@ const T = 15 * S
 /** Tooth width and depth. The torn edge and the sheet's foot are the same cut. */
 const TW = 7
 const TD = 4
-/** The curled corner. */
-const FW = 40
-const FH = 30
+/**
+ * The fold.
+ *
+ * Not a corner curl — paper this thin does not keep a 40px crease, it flops.
+ * Once the sheet is cut the whole top-right of it comes over on the diagonal
+ * and lies across the face, covering what is printed under it. Proportional to
+ * the sheet, because that is what decides how far it falls.
+ */
+const FW = PAPER_W * 0.6
+const FH = PAPER_H * 0.4
 
 const px = (v: number | string) => (typeof v === 'number' ? `${v.toFixed(2)}px` : v)
 const poly = (pts: [number | string, number | string][]) =>
@@ -106,10 +113,18 @@ export function flapPath(W: number) {
   const d = (bx - ax) * nx
   const rx = ax + 2 * d * nx - (bx - ax)
   const ry = ay + 2 * d * ny
-  const cx = (ax + bx) / 2 - ny * 4
-  const cy = (ay + by) / 2 + nx * 4
+  /*
+   * Every bow is a fraction of the fold's own length. Fixed at a few pixels —
+   * which is what they were when the fold was a 40px corner — a fold this size
+   * comes out as a flat triangle with a hard crease, and paper that thin has
+   * neither.
+   */
+  const bulge = L * 0.055
+  const slack = L * 0.045
+  const cx = (ax + bx) / 2 - ny * bulge
+  const cy = (ay + by) / 2 + nx * bulge
   return {
-    d: `M${ax} ${ay} Q${cx} ${cy} ${bx} ${by} Q${(bx + rx) / 2 + 2} ${(by + ry) / 2 + 1} ${rx} ${ry} Q${(rx + ax) / 2 - 1} ${(ry + ay) / 2 + 3} ${ax} ${ay} Z`,
+    d: `M${ax} ${ay} Q${cx} ${cy} ${bx} ${by} Q${(bx + rx) / 2 + slack} ${(by + ry) / 2 + slack * 0.5} ${rx} ${ry} Q${(rx + ax) / 2 - slack * 0.6} ${(ry + ay) / 2 + slack} ${ax} ${ay} Z`,
     grad: { x1: ax, y1: ay, x2: rx, y2: ry },
     origin: `${(ax + bx) / 2}px ${(ay + by) / 2}px`,
     height: by + 30,
@@ -306,13 +321,20 @@ export function PrintRig({
       // 3 · lets go: the corner curls over, the sheet drops and swings to rest
       paper.current!.style.clipPath = paperClip(W, W, true)
       cls('flapped', true)
+      /*
+       * It falls over rather than appearing. The origin is the middle of the
+       * crease, so this is the sheet hinging about the fold and dropping past
+       * flat before it settles — which is what a piece of paper that size does
+       * when it is no longer held.
+       */
       flap.current?.animate(
         [
-          { transform: 'scale(.2) rotate(-20deg)', opacity: 0 },
-          { transform: 'scale(1.08) rotate(4deg)', opacity: 1, offset: 0.6 },
+          { transform: 'scale(.82) rotate(-26deg)', opacity: 0 },
+          { transform: 'scale(1.04) rotate(5deg)', opacity: 1, offset: 0.55 },
+          { transform: 'scale(.99) rotate(-1.5deg)', opacity: 1, offset: 0.8 },
           { transform: 'scale(1) rotate(0)', opacity: 1 },
         ],
-        { duration: 520, easing: 'cubic-bezier(.3,.9,.4,1)' },
+        { duration: 680, easing: 'cubic-bezier(.3,.9,.4,1)' },
       )
       rig.current?.animate(
         [
