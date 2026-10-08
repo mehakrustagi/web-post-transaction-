@@ -3,6 +3,18 @@ import type { MotionValue } from 'framer-motion'
 import { MAP_ASPECT, MAP_DOTS } from './dots'
 
 const COUNT = MAP_DOTS.length / 2
+
+/** Blend two hex colours. Used once a frame, not once a dot. */
+function mix(a: string, b: string, t: number) {
+  const pa = parseInt(a.slice(1), 16)
+  const pb = parseInt(b.slice(1), 16)
+  const ch = (sh: number) => {
+    const x = (pa >> sh) & 255
+    const y = (pb >> sh) & 255
+    return Math.round(x + (y - x) * t)
+  }
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`
+}
 /** Golden angle, for spacing the sphere's points evenly. */
 const PHI = Math.PI * (3 - Math.sqrt(5))
 
@@ -24,6 +36,7 @@ export function WorldDots({
   morph,
   spin,
   colour = '#9aa0a6',
+  orbColour = '#70767d',
 }: {
   width: number
   height: number
@@ -34,25 +47,48 @@ export function WorldDots({
   /** Turns of the sphere, in radians. */
   spin: MotionValue<number>
   colour?: string
+  /** The orb carries more weight than the map does, so it is drawn darker. */
+  orbColour?: string
 }) {
   const canvas = useRef<HTMLCanvasElement>(null)
 
-  /* Sphere seats, worked out once and then owned by the dot that got them. */
+  /*
+   * Sphere seats and weights, worked out once and then owned by the dot that
+   * got them. Four floats each: where it sits, and how dark it is.
+   *
+   * Not a clean sphere. The design's orb (438:17464) is a lumpy thing with
+   * ridges running over it and a heavy, dark underside — evenly spaced points
+   * on a true sphere read as a wireframe of a ball, which is not what it is.
+   * The radius is pushed around by three bands of noise at different scales:
+   * the coarse one makes the silhouette bulge and dent, the finer ones give
+   * the surface its creases.
+   */
   const seats = useRef<Float32Array>(null as unknown as Float32Array)
   if (!seats.current) {
-    const s = new Float32Array(COUNT * 3)
+    const s = new Float32Array(COUNT * 4)
     for (let i = 0; i < COUNT; i++) {
       const y = 1 - (i / (COUNT - 1)) * 2
       const r = Math.sqrt(Math.max(0, 1 - y * y))
       const t = PHI * i
+      const ux = Math.cos(t) * r
+      const uy = y
+      const uz = Math.sin(t) * r
+
+      const lumps =
+        0.62 * Math.sin(1.9 * ux + 1.3) * Math.cos(1.5 * uy - 0.4) +
+        0.34 * Math.sin(3.7 * uy + 2.1) * Math.cos(3.1 * uz + 1.1) +
+        0.22 * Math.sin(6.1 * uz - 0.7) * Math.cos(5.3 * ux + 2.6)
+      const k = 0.78 + 0.22 * (lumps * 0.5 + 0.5)
+
+      s[i * 4] = ux * k
+      s[i * 4 + 1] = uy * k
+      s[i * 4 + 2] = uz * k
       /*
-       * A little noise on the radius. A clean sphere of evenly spaced points
-       * reads as a wireframe; the design's orb has a surface to it.
+       * Heavier towards the bottom, where the design's orb gathers its weight.
+       * `uy` of +1 is the *bottom* of the screen, not the top — the projection
+       * below adds it to the centre, so down is positive.
        */
-      const k = 0.93 + 0.07 * Math.sin(i * 12.9898) * Math.cos(i * 78.233)
-      s[i * 3] = Math.cos(t) * r * k
-      s[i * 3 + 1] = y * k
-      s[i * 3 + 2] = Math.sin(t) * r * k
+      s[i * 4 + 3] = 0.45 + 0.8 * Math.pow((uy + 1) / 2, 1.6)
     }
     seats.current = s
   }
@@ -83,6 +119,10 @@ export function WorldDots({
       const seat = seats.current
 
       ctx.clearRect(0, 0, width, height)
+      /* One fill for the whole frame: a per-dot colour would be 8,476 state
+         changes, and the only thing that varies is how far along the morph is. */
+      ctx.fillStyle = mix(colour, orbColour, m)
+      const r = 1.4 + m * 0.5
 
       for (let i = 0; i < COUNT; i++) {
         const mx = MAP_DOTS[i * 2]
@@ -94,30 +134,31 @@ export function WorldDots({
         let dim = 1
 
         if (m > 0) {
-          const sx = seat[i * 3]
-          const sy = seat[i * 3 + 1]
-          const sz = seat[i * 3 + 2]
+          const sx = seat[i * 4]
+          const sy = seat[i * 4 + 1]
+          const sz = seat[i * 4 + 2]
           /* Turn about the vertical, then drop the depth: a flat shadow of a
              turning sphere, which is all the design's orb is. */
           const rx = sx * cos - sz * sin
           const rz = sx * sin + sz * cos
           x += (cx + rx * radius - x) * m
           y += (cy + sy * radius - y) * m
-          /* The far side of the sphere is further away, so it is fainter. */
-          dim = 1 - m * 0.55 * (1 - (rz + 1) / 2)
+          /* The far side is further away, so it is fainter; and the orb is
+             weighted towards its underside. */
+          const front = (rz + 1) / 2
+          dim = 1 - m + m * Math.min(1, (0.58 + 0.42 * front) * seat[i * 4 + 3])
         }
 
         ctx.globalAlpha = dim
-        ctx.fillRect(x, y, 1.4, 1.4)
+        ctx.fillRect(x, y, r, r)
       }
       ctx.globalAlpha = 1
       frame = requestAnimationFrame(draw)
     }
 
-    ctx.fillStyle = colour
     draw()
     return () => cancelAnimationFrame(frame)
-  }, [width, height, reveal, morph, spin, colour])
+  }, [width, height, reveal, morph, spin, colour, orbColour])
 
   return <canvas ref={canvas} style={{ width, height, display: 'block' }} />
 }

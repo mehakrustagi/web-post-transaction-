@@ -5,6 +5,7 @@ import { PrintScene } from './scenes/PrintScene'
 import { MapScene, type MapBeat } from './scenes/MapScene'
 import { MAP_PAGE_H, MAP_SCROLL, MAP_STOPS, MapPage, type MapStop } from './scenes/MapPage'
 import { Ribbon } from './scenes/PageScene'
+import { SparklesProvider } from './components/ui/sparkles'
 import { MAP_OFFER } from './content'
 
 const FRAME_W = 1282
@@ -30,8 +31,6 @@ const BEATS = [
 
 type Step = (typeof BEATS)[number]['step'] | 'printing'
 
-/** While one of these is current, the printer is still the subject. */
-const PRINT_STEPS: Step[] = ['printing', 'clearing']
 /** And while one of these is, the map is. */
 const MAP_BEATS: MapBeat[] = ['turn', 'scan', 'routes', 'orb', 'card']
 
@@ -86,37 +85,60 @@ export default function MapApp() {
     timers.current = BEATS.map((b) => window.setTimeout(() => setStep(b.step), b.at * 1000))
   }, [])
 
-  const printing = PRINT_STEPS.includes(step)
   const mapping = MAP_BEATS.includes(step as MapBeat)
   const page = step === 'card' || step in MAP_SCROLL
+  /*
+   * The print scene stays mounted right up to the page. It owns the flag, the
+   * country line and the headline — and their arrival — so keeping it is both
+   * less code than a second copy of them and the only way they keep the
+   * entrance they were written with.
+   */
+  const showPrint = !page
   const beat: MapBeat = mapping ? (step as MapBeat) : page ? 'card' : 'turn'
 
   return (
+    <SparklesProvider>
     <main
       className="grid min-h-screen cursor-pointer place-items-center bg-canvas"
       onClick={() => setRun((n) => n + 1)}
       onWheel={onWheel}
     >
-      <div style={{ width: FRAME_W * scale, height: FRAME_H * scale }}>
+      {/* The frame inside is absolute, so this has to be what it is absolute to. */}
+      <div
+        className="relative select-none"
+        style={{ width: FRAME_W * scale, height: FRAME_H * scale }}
+      >
         <div
           className="absolute left-0 top-0 origin-top-left overflow-hidden rounded-[40px]"
           style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${scale})` }}
         >
-          {/*
-            The card the whole thing happens on. It stays put under the map —
-            the slip is being read onto it, not replaced by something else —
-            and only gives way once the page arrives.
-          */}
-          <motion.div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                'linear-gradient(101.874deg, #dedede 15.131%, #ffffff 57.588%, #cdcdcd 100.56%)',
-            }}
-            animate={{ opacity: page ? 0 : 1 }}
-            transition={{ duration: 0.8, ease: 'easeInOut' }}
-          />
+          <AnimatePresence>
+            {showPrint && (
+              <motion.div
+                key={`print-${run}`}
+                className="absolute inset-0"
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.55, ease: 'easeInOut' }}
+              >
+                <PrintScene
+                  hero={!page}
+                  leaving={step !== 'printing'}
+                  detached={false}
+                  /* From `turn` on the slip belongs to `MapScene`, which
+                     starts it exactly where this one left it. */
+                  handOver={mapping}
+                  onRest={onRest}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
+          {/*
+            Above the printing card, not under it. `PrintScene` paints the
+            card's own gradient and stays mounted for the heading, so left
+            after this it covered the map with it.
+          */}
           {/* The page, and the orb that lands in it, travel together. */}
           <motion.div className="absolute inset-0" style={{ y }}>
             <motion.div
@@ -132,82 +154,11 @@ export default function MapApp() {
             {(mapping || page) && <MapScene key={`map-${run}`} beat={beat} />}
           </motion.div>
 
-          <AnimatePresence initial={false}>
-            {printing && (
-              <motion.div
-                key={`print-${run}`}
-                className="absolute inset-0"
-                initial={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.55, ease: 'easeInOut' }}
-              >
-                <PrintScene
-                  hero
-                  leaving={step !== 'printing'}
-                  detached={false}
-                  onRest={onRest}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* The heading stays up through the map, and leaves with the page. */}
-          <motion.div
-            className="absolute inset-0"
-            animate={{ opacity: !printing && !page ? 1 : 0 }}
-            transition={{ duration: 0.6, ease: 'easeInOut' }}
-            style={{ pointerEvents: 'none' }}
-          >
-            <Hero />
-          </motion.div>
-
           <Header dark={false} onPage={page} />
         </div>
       </div>
     </main>
-  )
-}
-
-/** The flag, the country and the headline, held over from the printing frame. */
-function Hero() {
-  return (
-    <>
-      <div className="absolute" style={{ left: 613, top: 138, width: 54, height: 52 }}>
-        <img
-          src="/assets/flagRing.svg"
-          alt=""
-          aria-hidden
-          className="absolute max-w-none"
-          style={{ left: -6.25, top: 19.75, width: 66.5, height: 38.5 }}
-        />
-        <img
-          src="/assets/flag.svg"
-          alt="Vietnam"
-          className="absolute max-w-none"
-          style={{ left: 3, top: 0, width: 48, height: 48 }}
-        />
-      </div>
-      <div className="absolute flex items-center justify-center gap-[8px]" style={{ left: 587, top: 210, height: 20 }}>
-        <span className="whitespace-nowrap text-[16px] font-semibold leading-[20px] tracking-[-0.64px] text-grey900">
-          Vietnam
-        </span>
-        <img src="/assets/divider.svg" alt="" aria-hidden className="h-[9px] w-px" />
-        <span className="flex items-center">
-          <img src="/assets/person.svg" alt="" aria-hidden className="size-[20px]" />
-          <span className="whitespace-nowrap text-[16px] font-semibold leading-[20px] tracking-[-0.64px] text-grey600">
-            2
-          </span>
-        </span>
-      </div>
-      <div
-        className="absolute flex flex-col items-center overflow-hidden"
-        style={{ left: 351, top: 252, width: 582, height: 44 }}
-      >
-        <p className="whitespace-nowrap font-display text-[36px] font-medium leading-[44px] text-black">
-          Visa guaranteed on 18 Oct, 6:30 pm
-        </p>
-      </div>
-    </>
+    </SparklesProvider>
   )
 }
 

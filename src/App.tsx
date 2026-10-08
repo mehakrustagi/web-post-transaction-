@@ -211,7 +211,13 @@ export default function App() {
             {page && <PageBelow at={stop} />}
           </motion.div>
 
-          <AnimatePresence initial={false}>
+          {/*
+            No `initial={false}` here, and that is the whole opening: it
+            suppresses mount animations for everything inside it, so the blank
+            beat, the headline arriving and the printer rising only ever played
+            on replay — on a cold load the first frame was already the printer.
+          */}
+          <AnimatePresence>
             {showPrint && (
               <motion.div
                 key={`print-${run}`}

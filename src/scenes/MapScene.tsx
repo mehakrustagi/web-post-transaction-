@@ -1,9 +1,11 @@
 import { useEffect, useMemo } from 'react'
 import { animate, motion, useMotionValue, useReducedMotion } from 'framer-motion'
 import { PAPER_H, PAPER_W, PaperFace } from '../components/Receipt'
+import { flapPath, paperClip } from '../components/PrintRig'
 import { WorldDots } from '../features/map/WorldDots'
 import { arc, place, ROUTES, VIETNAM } from '../features/map/arcs'
 import { MAP_ASPECT } from '../features/map/dots'
+import { SparklesCore } from '../components/ui/sparkles'
 
 /**
  * Where the printer leaves the slip, and where it ends up once it has turned.
@@ -12,6 +14,8 @@ import { MAP_ASPECT } from '../features/map/dots'
  */
 const REST = { cx: 641, cy: 616 }
 const SLIP = { cx: 455, cy: 560 }
+/** Far enough left that the turned slip is off the card. */
+const LEAVE_X = -(REST.cx + PAPER_H / 2)
 const LINE_X = SLIP.cx + PAPER_H / 2
 const MAP = { x: LINE_X, y: SLIP.cy, w: 450 }
 /** The frame's own middle, which is where the orb gathers. */
@@ -69,7 +73,7 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
   const carded = at(beat, 'card')
 
   /* Where the canvas has to go for the orb to land where it is wanted. */
-  const natural = { x: MAP.x + MAP.w / 2, y: MAP.y }
+  const natural = { x: LINE_X + MAP.w / 2, y: MAP.y }
   const target = carded ? CARD_SLOT : { cx: FRAME.cx, cy: FRAME.cy }
   const to = {
     x: orbed ? ('cx' in target ? target.cx : 0) - natural.x : 0,
@@ -77,18 +81,14 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
     scale: carded ? CARD_SLOT.d / ORB_D : 1,
   }
 
+  /*
+   * Every dot is drawn from the start; what changes is where the canvas is.
+   * The map is not painted in place behind a travelling brush — it comes out
+   * of the seam, which is a fixed thing the card is being fed through.
+   */
   useEffect(() => {
-    if (still) {
-      reveal.set(1)
-      morph.set(orbed ? 1 : 0)
-      return
-    }
-    const run = animate(reveal, scanning ? 1 : 0, {
-      duration: SCAN_S,
-      ease: [0.45, 0, 0.25, 1],
-    })
-    return () => run.stop()
-  }, [scanning, reveal, morph, orbed, still])
+    reveal.set(1)
+  }, [reveal])
 
   useEffect(() => {
     if (still) return
@@ -111,6 +111,8 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
       clearTimeout(done)
     }
   }, [orbed, spin, still, onOrb])
+
+  const flap = useMemo(() => flapPath(PAPER_W), [])
 
   const routes = useMemo(() => {
     const hub = place(VIETNAM.lat, VIETNAM.lng)
@@ -143,45 +145,92 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
         initial={{ rotate: 0, x: 0, y: 0, opacity: 1 }}
         animate={{
           rotate: -90,
-          x: SLIP.cx - REST.cx,
+          /*
+           * It turns, and then it goes. The map is not appearing beside the
+           * slip, it is taking its place — so the slip leaves to the left
+           * while the line is still writing, and the card is handed over.
+           */
+          x: scanning ? LEAVE_X : SLIP.cx - REST.cx,
           y: SLIP.cy - REST.cy,
-          opacity: orbed ? 0 : 1,
+          opacity: scanning ? 0 : 1,
         }}
         transition={{
           default: { duration: TURN_S, ease: [0.4, 0, 0.2, 1] },
-          opacity: { duration: 0.8, ease: 'easeInOut' },
+          x: scanning
+            ? { delay: SCAN_S * 0.3, duration: SCAN_S * 0.8, ease: [0.5, 0, 0.3, 1] }
+            : { duration: TURN_S, ease: [0.4, 0, 0.2, 1] },
+          opacity: scanning
+            ? { delay: SCAN_S * 0.45, duration: SCAN_S * 0.55, ease: 'easeIn' }
+            : { duration: 0.3 },
         }}
       >
-        <div className="paper relative" style={{ width: PAPER_W, height: PAPER_H }}>
+        {/*
+          The same sheet that came out of the printer: the torn top and foot
+          and the curled corner are `PrintRig`'s own geometry, not a second
+          drawing of a receipt that happens to look similar.
+        */}
+        <svg
+          className="absolute left-0 top-0"
+          style={{ width: PAPER_W, height: flap.height }}
+          viewBox={`0 0 ${PAPER_W} ${flap.height}`}
+          aria-hidden
+        >
+          <defs>
+            <linearGradient id="turnedFold" gradientUnits="userSpaceOnUse" {...flap.grad}>
+              <stop offset="0" stopColor="#E4E4E9" />
+              <stop offset=".45" stopColor="#F7F7F9" />
+              <stop offset="1" stopColor="#FFFFFF" />
+            </linearGradient>
+          </defs>
+          <path d={flap.d} fill="url(#turnedFold)" />
+        </svg>
+        <div
+          className="paper relative"
+          style={{ width: PAPER_W, height: PAPER_H, clipPath: paperClip(PAPER_W, PAPER_W, true) }}
+        >
           <PaperFace />
         </div>
       </motion.div>
 
       {/* The map, printed in behind the line. */}
       {/*
-        The map prints where it is, beside the slip, and then walks to the
-        middle of the card as it gathers — the orb is the subject by then, and
-        it should not be sitting off to one side waiting to be noticed.
+        The map comes out of the seam. The box is clipped at the line and the
+        canvas slides right out of it, so the world is extruded rather than
+        drawn — and the clip is dropped once it is all out, because the orb
+        then has to travel left past the line to the middle of the card.
       */}
-      <motion.div
+      <div
         className="absolute"
-        /* The canvas is square-ish and centres the map in itself, so it only
-           needs its own half-height taken off — the map's is already handled. */
-        style={{ left: MAP.x, top: MAP.y - CANVAS_H / 2 }}
-        initial={false}
-        animate={to}
-        transition={{ duration: carded ? SETTLE_S : GATHER_S, ease: [0.5, 0, 0.2, 1] }}
+        style={{
+          left: LINE_X,
+          top: MAP.y - CANVAS_H / 2,
+          width: 1282 - LINE_X,
+          height: CANVAS_H,
+          overflow: routed ? 'visible' : 'hidden',
+        }}
       >
-        <WorldDots
-          width={MAP.w}
-          height={CANVAS_H}
-          reveal={reveal}
-          morph={morph}
-          spin={spin}
-          /* Grey on the card it is printed on, pale once it is on the teal. */
-          colour={carded ? '#bfe9e4' : '#8d939a'}
-        />
-      </motion.div>
+        <motion.div
+          className="absolute left-0 top-0"
+          initial={{ x: -MAP.w }}
+          /* One x, two jobs: coming out of the seam, then carrying the orb. */
+          animate={{ ...to, x: orbed ? to.x : scanning ? 0 : -MAP.w }}
+          transition={{
+            x: { duration: SCAN_S, ease: [0.4, 0, 0.25, 1] },
+            default: { duration: carded ? SETTLE_S : GATHER_S, ease: [0.5, 0, 0.2, 1] },
+          }}
+        >
+          <WorldDots
+            width={MAP.w}
+            height={CANVAS_H}
+            reveal={reveal}
+            morph={morph}
+            spin={spin}
+            /* Grey on the card it is printed on, pale once it is on the teal. */
+            colour={carded ? '#bfe9e4' : '#8d939a'}
+            orbColour={carded ? '#8fd3cc' : '#70767d'}
+          />
+        </motion.div>
+      </div>
 
       {/* The routes, once there is a map to draw them on. */}
       <motion.svg
@@ -264,86 +313,68 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
         )}
       </motion.svg>
 
-      <ScanEdge beat={beat} still={still} />
+      <Seam beat={beat} />
     </motion.div>
   )
 }
 
 /**
- * The line that does the writing, and the dust it throws up.
+ * The seam the card is fed through.
  *
- * Lifted from the headline reveal rather than reinvented: it is the same
- * gesture at a different scale, and the point of using it twice is that the
- * second time it is recognised.
+ * It does not move. The slip goes out to the left of it and the world comes
+ * out to the right, which is the whole idea — a fixed edge with two things
+ * crossing it in opposite directions reads as one becoming the other, where a
+ * travelling brush just reads as drawing.
+ *
+ * The rule and its sparkles are Aceternity's `sparkles` demo, at this scale
+ * and turned on its side.
  */
-function ScanEdge({ beat, still }: { beat: MapBeat; still: boolean | null }) {
-  const scanning = at(beat, 'scan')
-  /* It wrote the map; once the routes start it has nothing left to say. */
+function Seam({ beat }: { beat: MapBeat }) {
+  const lit = at(beat, 'scan')
   const gone = at(beat, 'routes')
-  const travel = MAP.w
-
-  const motes = useMemo(
-    () =>
-      Array.from({ length: 48 }, () => ({
-        y: Math.random() * 100,
-        size: 1.1 + Math.pow(Math.random(), 2.2) * 3,
-        dx: Array.from({ length: 3 }, () => Math.random() * 14 - 7),
-        dy: Array.from({ length: 3 }, () => Math.random() * 10 - 5),
-        peak: 0.4 + Math.random() * 0.6,
-        delay: Math.random() * 4,
-      })),
-    [],
-  )
 
   return (
     <motion.div
       className="pointer-events-none absolute"
-      style={{ left: LINE_X, top: SLIP.cy - 200, height: 400, width: 1 }}
-      initial={{ opacity: 0, x: 0 }}
-      animate={{ opacity: gone ? 0 : 1, x: scanning ? travel : 0 }}
-      transition={{
-        opacity: { duration: 0.6 },
-        x: { duration: SCAN_S, ease: [0.45, 0, 0.25, 1] },
-      }}
+      style={{ left: LINE_X - 60, top: SLIP.cy - 210, width: 120, height: 420 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: gone ? 0 : lit ? 1 : 0.5 }}
+      transition={{ duration: 0.7, ease: 'easeInOut' }}
     >
+      {/* The rule: a hard line with a soft one bloomed behind it. */}
       <span
-        className="absolute inset-y-0 block w-px"
+        className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2"
         style={{
           backgroundImage:
-            'linear-gradient(to bottom, transparent, rgba(60,64,70,.55) 18%, rgba(60,64,70,.55) 82%, transparent)',
+            'linear-gradient(to bottom, transparent, rgba(60,64,70,.5) 22%, rgba(60,64,70,.5) 78%, transparent)',
         }}
       />
-      {!still && (
-        <span className="absolute inset-y-0 block" style={{ left: -26, width: 52 }}>
-          {motes.map((m, i) => (
-            <motion.span
-              key={i}
-              className="absolute block rounded-full"
-              style={{
-                top: `${m.y}%`,
-                left: '50%',
-                width: m.size,
-                height: m.size,
-                background: '#6b7076',
-                boxShadow: `0 0 ${2 + m.size * 2}px rgba(120,126,133,.6)`,
-              }}
-              animate={{
-                x: [0, ...m.dx, 0],
-                y: [0, ...m.dy, 0],
-                opacity: [0, m.peak, m.peak * 0.4, m.peak, 0],
-                scale: [0.5, 1, 1.25, 1, 0.5],
-              }}
-              transition={{
-                duration: 4,
-                delay: m.delay,
-                repeat: Infinity,
-                repeatType: 'mirror',
-                ease: 'easeInOut',
-              }}
-            />
-          ))}
-        </span>
-      )}
+      <span
+        className="absolute inset-y-10 left-1/2 w-[3px] -translate-x-1/2 blur-sm"
+        style={{
+          backgroundImage:
+            'linear-gradient(to bottom, transparent, rgba(90,96,104,.45), transparent)',
+        }}
+      />
+
+      <SparklesCore
+        background="transparent"
+        minSize={0.4}
+        maxSize={1}
+        particleDensity={1200}
+        particleColor="#6b7076"
+        className="h-full w-full"
+      />
+
+      {/* Keeps the field from ending on a hard edge. */}
+      <span
+        className="absolute inset-0"
+        style={{
+          maskImage: 'radial-gradient(90px 190px at center, transparent 20%, white)',
+          WebkitMaskImage: 'radial-gradient(90px 190px at center, transparent 20%, white)',
+          background: 'transparent',
+        }}
+      />
     </motion.div>
   )
 }

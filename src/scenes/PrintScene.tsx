@@ -26,14 +26,19 @@ export const AT = {
   namer: 1.25,
   headline: 1.45,
   lift: 2.9,
-  machine: 3.3,
+  /*
+   * After the headline has landed, not during. Arriving mid-glide it crossed
+   * the text on its way up, which read as two things fighting for the same
+   * piece of card.
+   */
+  machine: 4.2,
   /*
    * Only a breath after the machine, not a pause. Left at two thirds of a
    * second this was long enough to screenshot: a printer sitting there with
    * an empty mouth, which reads as the thing having stalled rather than as
    * the beat before it starts.
    */
-  feed: 3.6,
+  feed: 4.5,
 }
 
 /** How far down the group starts: enough to sit centred on the frame. */
@@ -60,6 +65,7 @@ export function PrintScene({
   detached,
   onRest,
   hero = true,
+  handOver = false,
 }: {
   /*
    * The card's furniture goes before its background does, and before the slip
@@ -77,6 +83,8 @@ export function PrintScene({
    * it, so the machine leaving and the heading leaving are two things.
    */
   hero?: boolean
+  /** Passed through: another scene has taken the slip on. */
+  handOver?: boolean
 }) {
   return (
     <div className="absolute inset-0 overflow-hidden rounded-[40px]">
@@ -176,15 +184,17 @@ export function PrintScene({
       <motion.div
         className="absolute left-0 w-full"
         style={{ top: MACHINE_Y, height: MACHINE_H }}
-        initial={{ opacity: 0, y: 40 }}
+        /* Straight up from under the headline into its place, and still on
+           its way when the paper starts, as in the source. */
+        initial={{ opacity: 0, y: 110 }}
         animate={{ opacity: 1, y: 0 }}
-        /* Still on its way up when the paper starts, as in the source. */
-        transition={{ delay: AT.machine, duration: 0.9, ease: [0.22, 0.8, 0.3, 1] }}
+        transition={{ delay: AT.machine, duration: 0.85, ease: [0.22, 0.8, 0.3, 1] }}
       >
         <PrintRig
           delay={AT.feed}
           leaving={leaving}
           detached={detached}
+          handOver={handOver}
           away={AWAY}
           onRest={onRest}
         />

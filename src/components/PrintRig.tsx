@@ -70,7 +70,7 @@ function tearLine(x0: number, x1: number): Pt[] {
 }
 
 /** The sheet's outline: torn up to `front`, still whole beyond it. */
-function paperClip(W: number, front: number, withFlap?: boolean) {
+export function paperClip(W: number, front: number, withFlap?: boolean) {
   let top: Pt[]
   if (withFlap) top = [...tearLine(0, W - FW), [W, T + TD + FH]]
   else if (front <= 0) top = [[0, 0], [W, 0]]
@@ -83,7 +83,7 @@ function paperClip(W: number, front: number, withFlap?: boolean) {
 }
 
 /** The folded corner: the tip reflected across the fold, with a soft bulge. */
-function flapPath(W: number) {
+export function flapPath(W: number) {
   const ax = W - FW
   const ay = T + TD
   const bx = W
@@ -116,6 +116,7 @@ export function PrintRig({
   delay = 0,
   leaving = false,
   detached = false,
+  handOver = false,
   away,
   onRest,
 }: {
@@ -123,6 +124,12 @@ export function PrintRig({
   /** The machine and the tail in its mouth go; the slip stays. */
   leaving?: boolean
   detached?: boolean
+  /**
+   * Somebody else is drawing this sheet now. Cut, not faded: the scene taking
+   * it over starts it at exactly this position and size, so the swap is only
+   * invisible if neither of them blinks.
+   */
+  handOver?: boolean
   /**
    * Where the freed slip goes: not off the frame, but back into it. The scene
    * works out the offset, because it is the only thing that knows where this
@@ -387,7 +394,7 @@ export function PrintRig({
             transform: detached
               ? `translate(${away.x}px, ${away.y}px) scale(${away.scale})`
               : 'none',
-            opacity: detached ? 0 : 1,
+            opacity: handOver ? 0 : detached ? 0 : 1,
             transition: detached
               /* The fade trails the travel rather than cutting it short, so
                  the sheet is still readable most of the way back. */
