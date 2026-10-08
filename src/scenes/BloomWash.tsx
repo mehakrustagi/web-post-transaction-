@@ -38,34 +38,6 @@ const COOK = 0.72
 const LEAD =
   'transparent 0px, rgba(0,0,0,0.07) 120px, rgba(0,0,0,0.26) 250px, rgba(0,0,0,0.6) 390px, black 540px'
 const FEATHER = `linear-gradient(to bottom, ${LEAD}, black 100%)`
-/**
- * And how its trailing edge dissolves into the page behind it.
- *
- * Only once it is going. While the colour is pooled at the foot of the card
- * that edge is off the bottom of the screen and softening it there would just
- * fade the pool out short of the edge, which is the hole this mask was written
- * to avoid in the first place.
- */
-const FEATHER_OUT = `linear-gradient(to bottom, ${LEAD}, black calc(100% - 420px), rgba(0,0,0,0.5) calc(100% - 210px), transparent 100%)`
-/**
- * The launch, as one move.
- *
- * It used to go in two: up to 740 on one ease, then retargeted to 1160 on
- * another. Framer restarts the tween when the target changes, so the join was
- * a visible hitch halfway up — and the second leg faded the sheet out where it
- * stood, which is an opaque surface dissolving over the top half of the screen
- * rather than leaving. It travels once, far enough to be gone, and never
- * changes its opacity at all.
- */
-const FIRE_MS = 1250
-/**
- * Past the top of the frame entirely.
- *
- * The group is 1240 tall and starts 360 down, so anything less than 1600 still
- * has its bottom edge somewhere on screen when the move ends — which is what
- * put a hard horizontal line across the page and then left it there.
- */
-const FIRE_Y = 1720
 
 /**
  * The colour.
@@ -133,10 +105,26 @@ function BloomFields() {
   )
 }
 
-type Beat = 'idle' | 'fired' | 'done'
+/**
+ * The card the whole thing turns into (438:16680).
+ *
+ * The eSIM card's own rectangle on the page, and its own gradient. This is why
+ * the wash is in those colours: it is not passing over the card on its way
+ * somewhere, it *is* the card, at the size of the screen, on its way down to
+ * the size of a card.
+ */
+const CARD = { x: 281, y: 337, w: 785, h: 300, r: 24 }
+const CARD_BG = 'linear-gradient(175.298deg, #0b5975 8.856%, #159d94 136.62%)'
 
-/** A breath past the travel, after which there is nothing left to draw. */
-const DONE_MS = FIRE_MS + 120
+/** How long the surface takes to rise and cover everything before it closes. */
+const COVER_MS = 640
+/** How softly its leading edge dissolves into the card on the way up. */
+const SURGE =
+  'linear-gradient(to bottom, transparent 0px, rgba(0,0,0,0.35) 120px, black 260px, black 100%)'
+/** And how long the close itself takes. */
+const CLOSE_MS = 1050
+
+type Beat = 'idle' | 'cover' | 'close' | 'done' | 'gone'
 
 /**
  * The colour wash, cooking at the foot of the page and then leaving up it.
@@ -164,18 +152,28 @@ export function BloomWash({
 
   useEffect(() => {
     if (!fire || beat !== 'idle') return
-    setBeat('fired')
-    onFired?.()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setBeat('cover')
   }, [fire, beat])
 
   useEffect(() => {
-    if (beat !== 'fired') return
-    const t = window.setTimeout(() => setBeat('done'), DONE_MS)
+    if (beat === 'idle' || beat === 'gone') return
+    const t = window.setTimeout(
+      () => {
+        if (beat === 'cover') {
+          /* The page is swapped in under a surface that is already covering
+             everything, so there is nothing to see it happen. */
+          onFired?.()
+          setBeat('close')
+        } else setBeat(beat === 'close' ? 'done' : 'gone')
+      },
+      beat === 'cover' ? COVER_MS : beat === 'close' ? CLOSE_MS : 300,
+    )
     return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [beat])
 
-  const fired = beat === 'fired'
+  const fired = beat !== 'idle'
+  const closing = beat === 'close' || beat === 'done' || beat === 'gone'
   const active = cook || fired
 
   /*
@@ -184,23 +182,22 @@ export function BloomWash({
    * a backdrop-filter — left mounted it held the whole page in a 30px blur
    * long after the colour had left the frame.
    */
-  if (still || beat === 'done') return null
+  if (still || beat === 'gone') return null
 
+  /*
+   * The cooking colour is multiplied onto the page rather than laid over it
+   * behind a frosted sheet. The veil this was ported with carried a 30px
+   * backdrop-filter, and that blur is what made the receipt illegible the
+   * moment the colour arrived — the wash is supposed to cook on the page, not
+   * fog it. On multiply, white areas leave the page exactly as it is and the
+   * coloured ones only darken it.
+   *
+   * And it sits under the slip rather than over it. The receipt is the one
+   * thing on this card that is not the page: colour running across it made it
+   * look tinted, which is a printed slip that has come out the wrong shade.
+   */
   return (
-    /*
-     * Multiplied onto the page rather than laid over it behind a frosted
-     * sheet. The veil this was ported with carried a 30px backdrop-filter,
-     * and that blur is what made the receipt illegible the moment the colour
-     * arrived — the wash is supposed to cook on the page, not fog it. On
-     * multiply, white areas leave the page exactly as it is and the coloured
-     * ones only darken it, so the page stays as sharp under the colour as it
-     * is beside it.
-     *
-     * And it sits under the slip rather than over it. The receipt is the one
-     * thing on this card that is not the page: colour running across it made
-     * it look tinted, which is a printed slip that has come out the wrong
-     * shade. The wash cooks on the card behind it.
-     */
+    <>
     <div
       className="pointer-events-none absolute inset-0 overflow-hidden rounded-[40px]"
       style={{
@@ -210,8 +207,8 @@ export function BloomWash({
          * take the card with it cannot be behind the card. Multiply is for the
          * tint — the sheet that does the wiping is opaque and blends normally.
          */
-        zIndex: fired ? 3 : 1,
-        mixBlendMode: fired ? 'normal' : 'multiply',
+        zIndex: 1,
+        mixBlendMode: 'multiply',
       }}
     >
       <div
@@ -242,68 +239,25 @@ export function BloomWash({
             /* It stretches from its own base rather than about its middle, so
                the smear runs ahead of it instead of pulling both edges apart. */
             transformOrigin: '50% 100%',
-            maskImage: fired ? FEATHER_OUT : FEATHER,
-            WebkitMaskImage: fired ? FEATHER_OUT : FEATHER,
+            maskImage: FEATHER,
+            WebkitMaskImage: FEATHER,
           }}
           initial={{ opacity: 0, y: 120 }}
           animate={
-            !active
-              ? { opacity: 0, y: 120 }
-              : fired
-                ? {
-                    /* No fade, ever. It leaves by leaving. */
-                    opacity: 1,
-                    y: -FIRE_Y,
-                    /* Stretches on the way up and recovers — the smear of
-                       something moving faster than it can hold its shape. A
-                       rigid block travelling the same distance reads as a
-                       slide. */
-                    scaleY: [1, 1.22, 1.05],
-                    scaleX: [1, 1.05, 1.02],
-                  }
-                : /* Cooking: up at the foot of the page, and no more of
-                     itself than that needs. */
-                  { opacity: COOK, y: 0, scaleY: 1, scaleX: 1 }
+            !active || fired
+              ? /* Handed over. The surface above is already covering the card
+                   by the time this goes, so there is nothing to watch it go. */
+                { opacity: 0, y: fired ? -40 : 120 }
+              : /* Cooking: up at the foot of the page, and no more of itself
+                   than that needs. */
+                { opacity: COOK, y: 0 }
           }
           transition={
             fired
-              ? {
-                  /* Fired, not lifted: near-zero initial slope and then a hard
-                     pull away that carries all the way off. */
-                  y: { duration: FIRE_MS / 1000, ease: [0.62, 0, 0.26, 1] },
-                  scaleY: { duration: FIRE_MS / 1000, ease: 'easeOut' },
-                  scaleX: { duration: FIRE_MS / 1000, ease: 'easeOut' },
-                }
+              ? { duration: 0.45, ease: 'easeOut' }
               : { duration: RISE_MS / 1000, ease: [0.33, 0, 0.2, 1] }
           }
         >
-          {/*
-            The gradient itself, as a sheet rather than as a tint.
-            
-            While it is only cooking this is not there at all — the colour at
-            the foot of the card is the soft fields below, multiplied onto it,
-            which is what lets the slip stand on the card without being stained
-            by it. The moment it fires it becomes a real surface: the four
-            stops laid left to right, opaque, travelling up the frame. That is
-            the whole job — everything on the card goes because this passed
-            over it, not because it was separately asked to leave.
-          */}
-          <motion.div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                /* The stops, taken most of the way toward white. At their own
-                   weight an opaque sheet of them crossing the card is a slab —
-                   the colour has to be something the card passes into, which
-                   means it has to have air in it. The relationships between the
-                   four are what read as the gradient, not their density. */
-                'linear-gradient(104deg, #8CBFC2 0%, #8AB4BD 34%, #A8BBE4 71%, #8AA5C4 100%)',
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: fired ? 1 : 0 }}
-            transition={{ duration: fired ? 0.26 : 0.2, ease: 'easeOut' }}
-          />
-
           <BloomFields />
 
           {/* The floor pool. The drifting fields give the wash its movement,
@@ -372,5 +326,59 @@ export function BloomWash({
         </motion.div>
       </div>
     </div>
+
+      {/*
+        The surface, which is the card.
+        
+        Rather than sweeping the page away and handing over to a card that
+        arrives separately, the colour covers the whole frame and then closes
+        in on the card's own rectangle — so what you watch is this page
+        becoming that card, not one thing leaving and another turning up. It
+        is the gift card's condense, in the eSIM card's own gradient, which is
+        the gradient the wash has been in all along: it was never passing over
+        the card on its way somewhere, it was the card at the size of a screen.
+      */}
+      {fired && (
+        <motion.div
+          className="absolute overflow-hidden"
+          style={{
+            zIndex: 3,
+            backgroundImage: CARD_BG,
+            /* Soft-edged while it is surging up over the card, square once it
+               is closing — by then the edge is the card's own edge, and a
+               feathered card is not a card. */
+            maskImage: closing ? 'none' : SURGE,
+            WebkitMaskImage: closing ? 'none' : SURGE,
+            transition: 'mask-image .3s ease',
+          }}
+          /*
+           * It comes up out of the pool rather than fading in over it. Faded,
+           * the screen went from a pale wash at the foot of the card to a
+           * saturated full-frame teal in a third of a second, which is two
+           * different things swapped rather than one thing growing — so it
+           * starts below the frame entirely and surges up through it, and the
+           * cooking colour goes as it arrives.
+           */
+          initial={{ left: 0, top: FRAME_H, width: FRAME_W, height: FRAME_H, borderRadius: 0, opacity: 1 }}
+          animate={{
+            left: closing ? CARD.x : 0,
+            top: closing ? CARD.y : 0,
+            width: closing ? CARD.w : FRAME_W,
+            height: closing ? CARD.h : FRAME_H,
+            borderRadius: closing ? CARD.r : 0,
+            /* It only lets go once it is the card's own size and in the card's
+               own place, where the card underneath is identical to it — so the
+               hand-over is the content appearing, not the colour changing. */
+            opacity: beat === 'done' ? 0 : 1,
+          }}
+          transition={{
+            opacity: { duration: 0.26, ease: 'easeOut' },
+            default: closing
+              ? { duration: CLOSE_MS / 1000, ease: [0.5, 0, 0.18, 1] }
+              : { duration: COVER_MS / 1000, ease: [0.4, 0, 0.2, 1] },
+          }}
+        />
+      )}
+    </>
   )
 }

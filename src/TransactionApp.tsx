@@ -51,9 +51,12 @@ const AFTER = [
    * and what you actually see is the tail of that climb as the sheet clears.
    */
   { at: 2.25, step: 'card' },
-  { at: 3.1, step: 'landed' },
-  { at: 4.5, step: 'explore' },
-  { at: 7.1, step: 'more' },
+  /* As the surface finishes closing and lets go of the card beneath it, which
+     is identical to it — so the hand-over is the content appearing rather
+     than the colour changing. */
+  { at: 3.5, step: 'landed' },
+  { at: 4.9, step: 'explore' },
+  { at: 7.5, step: 'more' },
 ] as const
 
 const ORDER = ['printing', 'cook', 'fire', 'card', 'landed', 'explore', 'more'] as const
@@ -220,21 +223,16 @@ export default function TransactionApp() {
             </AnimatePresence>
 
             {/*
-              The last page, pulled up into a frame the sheet has just cleared.
-              It waits for the card to be gone rather than crossing it on the
-              way in — two things travelling at once is the clutter, not the
-              speed.
+              The last page. It does not travel at all any more: the surface
+              above is closing onto the card that is already sitting here, so
+              everything this page does happens under cover and all a slide
+              would add is a movement nobody can see.
             */}
             <motion.div
               className="absolute inset-0 z-[2]"
               initial={false}
-              animate={{ y: page ? 0 : 150, opacity: page ? 1 : 0 }}
-              transition={{
-                y: { duration: 0.95, ease: [0.18, 0.72, 0.24, 1] },
-                /* Straight to full. It is behind the sheet when this runs, so
-                   a fade here is only a way of arriving half-there. */
-                opacity: { duration: 0.18, ease: 'easeOut' },
-              }}
+              animate={{ opacity: page ? 1 : 0 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
             >
             <motion.div className="absolute inset-0" style={{ y }}>
               <motion.div
