@@ -43,7 +43,7 @@ const SLIP = { cx: LINE_X - PAPER_H / 2, cy: BASE_Y - PAPER_W / 2 }
  * read off something sitting against the right-hand edge.
  */
 const MAP_CENTRE = { cx: 641, cy: BASE_Y - (CANVAS_H + MAP_H) / 2 + CANVAS_H / 2, d: 0 }
-const CENTRE_S = 1.1
+const CENTRE_S = 0.8
 
 /** Where the orb ends up once the dots have gathered (438:17412). */
 const ORB_REST = { cx: 641, cy: 620, d: 293 }
@@ -67,11 +67,11 @@ const ORB_D = Math.min(MAP_W, CANVAS_H) * 0.42 * 2
 const CANVAS_MID = { x: LINE_X + MAP_W / 2, y: CANVAS_TOP + CANVAS_H / 2 }
 
 /** How long each part of the translation takes. */
-const TURN_S = 1.1
-const SCAN_S = 2.6
-const ARCS_S = 1.8
-const GATHER_S = 1.9
-const SETTLE_S = 1.3
+const TURN_S = 0.85
+const SCAN_S = 1.9
+const ARCS_S = 1.3
+const GATHER_S = 1.5
+const SETTLE_S = 1.0
 
 export type MapBeat = 'turn' | 'scan' | 'routes' | 'orb' | 'card'
 
@@ -261,6 +261,7 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
               colour={carded ? '#bfe9e4' : '#8d939a'}
               orbFrom={carded ? '#dcf5f1' : '#d1d1d1'}
               orbTo={carded ? '#8fd3cc' : '#666666'}
+              scatter={0.16}
             />
 
             {/* The routes ride with the map, in the map's own coordinates. */}

@@ -37,6 +37,7 @@ export function WorldDots({
   spin,
   source = 'map',
   sheet,
+  scatter = 0,
   colour = '#9aa0a6',
   orbFrom = '#d1d1d1',
   orbTo = '#666666',
@@ -54,6 +55,12 @@ export function WorldDots({
   source?: 'map' | 'sheet'
   /** The sheet's box on the canvas, when that is where they start. */
   sheet?: { x: number; y: number; w: number; h: number }
+  /**
+   * How wide the dots are thrown on their way between the two layouts, as a
+   * fraction of the canvas. Zero makes every dot take the shortest line, which
+   * is what made the change read as a dissolve between two stills.
+   */
+  scatter?: number
   /** Turns of the sphere, in radians. */
   spin: MotionValue<number>
   colour?: string
@@ -79,7 +86,7 @@ export function WorldDots({
    */
   const seats = useRef<Float32Array>(null as unknown as Float32Array)
   if (!seats.current) {
-    const s = new Float32Array(COUNT * 4)
+    const s = new Float32Array(COUNT * 6)
     for (let i = 0; i < COUNT; i++) {
       const y = 1 - (i / (COUNT - 1)) * 2
       const r = Math.sqrt(Math.max(0, 1 - y * y))
@@ -101,15 +108,24 @@ export function WorldDots({
       const n3 = Math.sin(16.3 * ux - 0.9) * Math.cos(14.1 * uy + 1.4)
       const k = 0.845 + 0.095 * n1 + 0.062 * n2 + 0.028 * n3
 
-      s[i * 4] = ux * k
-      s[i * 4 + 1] = uy * k
-      s[i * 4 + 2] = uz * k
+      s[i * 6] = ux * k
+      s[i * 6 + 1] = uy * k
+      s[i * 6 + 2] = uz * k
       /*
        * Heavier towards the bottom, where the design's orb gathers its weight.
        * `uy` of +1 is the *bottom* of the screen, not the top — the projection
        * below adds it to the centre, so down is positive.
        */
-      s[i * 4 + 3] = 0.6 + 0.5 * Math.pow((uy + 1) / 2, 1.4)
+      s[i * 6 + 3] = 0.6 + 0.5 * Math.pow((uy + 1) / 2, 1.4)
+      /*
+       * Which way this one flies on the way across, and how far. Nothing goes
+       * straight from where it was to where it is going — paper coming apart
+       * throws its pieces outward first, and they only draw together after.
+       */
+      const a = (i * 2.399963) % (Math.PI * 2)
+      const far = 0.35 + 0.65 * ((Math.sin(i * 91.7) + 1) / 2)
+      s[i * 6 + 4] = Math.cos(a) * far
+      s[i * 6 + 5] = Math.sin(a) * far
     }
     seats.current = s
   }
@@ -129,6 +145,13 @@ export function WorldDots({
     const cy = height / 2
     const top = cy - mapH / 2
     const radius = Math.min(width, height) * 0.42
+    const spread = Math.min(width, height) * scatter
+    /**
+     * How far a dot breathes. Scaled by the morph: the map wants to be a clean
+     * printed thing and a constant jitter only makes it look out of focus,
+     * while the orb is dust and should never hold still.
+     */
+    const drift = Math.min(width, height) * 0.003
     /*
      * The sheet's dots are scattered over its rectangle rather than ruled into
      * a grid — a grid of this many points reads as a screen door, and what is
@@ -142,10 +165,16 @@ export function WorldDots({
     }
 
     let frame = 0
-    const draw = () => {
+    const draw = (now: number) => {
       const rev = reveal.get()
       const m = morph.get()
       const a = spin.get()
+      /*
+       * Nothing ever sits perfectly still. Without this the field is a frozen
+       * texture whenever it is not between layouts, which is most of the time
+       * and reads as a picture of dots rather than dots.
+       */
+      const t = now * 0.0011
       const sin = Math.sin(a)
       const cos = Math.cos(a)
       const seat = seats.current
@@ -178,9 +207,9 @@ export function WorldDots({
         let dim = 1
 
         if (m > 0) {
-          const sx = seat[i * 4]
-          const sy = seat[i * 4 + 1]
-          const sz = seat[i * 4 + 2]
+          const sx = seat[i * 6]
+          const sy = seat[i * 6 + 1]
+          const sz = seat[i * 6 + 2]
           /* Turn about the vertical, then drop the depth: a flat shadow of a
              turning sphere, which is all the design's orb is. */
           const rx = sx * cos - sz * sin
@@ -195,8 +224,19 @@ export function WorldDots({
            * it hard leaves a shell with nothing inside.
            */
           const front = (rz + 1) / 2
-          dim = 1 - m + m * Math.min(1, (0.72 + 0.28 * front) * seat[i * 4 + 3])
+          dim = 1 - m + m * Math.min(1, (0.72 + 0.28 * front) * seat[i * 6 + 3])
+
+          /* Thrown wide at the halfway point, home again by the end. */
+          const fling = Math.sin(m * Math.PI) * spread
+          x += seat[i * 6 + 4] * fling
+          y += seat[i * 6 + 5] * fling
         }
+
+        const px = seat[i * 6 + 4]
+        const py = seat[i * 6 + 5]
+        const breath = drift * (0.3 + 0.7 * m)
+        x += Math.sin(t + px * 9) * breath
+        y += Math.cos(t * 0.9 + py * 9) * breath
 
         ctx.globalAlpha = dim
         ctx.fillRect(x, y, r, r)
@@ -214,9 +254,9 @@ export function WorldDots({
       frame = requestAnimationFrame(draw)
     }
 
-    draw()
+    frame = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(frame)
-  }, [width, height, reveal, morph, spin, colour, orbFrom, orbTo, source, sheet])
+  }, [width, height, reveal, morph, spin, colour, orbFrom, orbTo, source, sheet, scatter])
 
   return <canvas ref={canvas} style={{ width, height, display: 'block' }} />
 }

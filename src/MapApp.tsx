@@ -19,17 +19,17 @@ const FLOOR = -(MAP_PAGE_H - FRAME_H)
  * dots gather into the orb — which then takes its place in the card.
  */
 const BEATS = [
-  { at: 0.5, step: 'clearing' },
-  { at: 1.1, step: 'turn' },
-  { at: 2.6, step: 'scan' },
-  { at: 5.6, step: 'routes' },
-  { at: 9.8, step: 'orb' },
-  { at: 12.2, step: 'card' },
+  { at: 0.4, step: 'clearing' },
+  { at: 0.88, step: 'turn' },
+  { at: 2.08, step: 'scan' },
+  { at: 4.48, step: 'routes' },
+  { at: 7.84, step: 'orb' },
+  { at: 9.76, step: 'card' },
   /* Once it has settled it stops being a thing flying over the page and
      becomes the card's artwork, drawn behind the card's own text. */
-  { at: 14.1, step: 'landed' },
-  { at: 15.6, step: 'explore' },
-  { at: 18.8, step: 'more' },
+  { at: 11.28, step: 'landed' },
+  { at: 12.48, step: 'explore' },
+  { at: 15.04, step: 'more' },
 ] as const
 
 type Step = (typeof BEATS)[number]['step'] | 'printing'

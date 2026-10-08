@@ -22,10 +22,10 @@ export const PAPER_TOP = MACHINE_Y + EXIT_Y
  * it has finished arriving.
  */
 export const AT = {
-  flag: 1,
-  namer: 1.25,
-  headline: 1.45,
-  lift: 2.9,
+  flag: 0.7,
+  namer: 0.95,
+  headline: 1.15,
+  lift: 2.2,
   /*
    * After the headline has landed, not during. Arriving mid-glide it crossed
    * the text on its way up, which read as two things fighting for the same
@@ -38,12 +38,12 @@ export const AT = {
    * an empty mouth, which reads as the thing having stalled rather than as
    * the beat before it starts.
    */
-  feed: 4.5,
+  feed: 3.65,
 }
 
 /** How far down the group starts: enough to sit centred on the frame. */
 const HERO_DROP = 240
-const LIFT_S = 1.5
+const LIFT_S = 1.15
 /**
  * The printer rises at the headline's speed, not its own. Both move straight
  * up the card a moment apart, and at different rates they read as two

@@ -220,9 +220,9 @@ export function PrintRig({
       let v = 0
       await frames((dt) => {
         const onLine = bands.some(([a, b]) => y >= a && y <= b)
-        let target = onLine ? 80 : 175
+        let target = onLine ? 115 : 250
         const left = H - y
-        if (left < 28) target = Math.max(26, left * 5)
+        if (left < 28) target = Math.max(38, left * 6)
         v += (target - v) * Math.min(1, dt * 6)
         y = Math.min(H, y + v * dt)
         setFeed(y)
@@ -231,7 +231,7 @@ export function PrintRig({
       if (!live) return
       cls('rumble', false)
       cls('done', true)
-      await waitMs(500)
+      await waitMs(330)
       if (!live) return
 
       // 2 · tear — a tug, then the serrated edge rips steadily left to right
@@ -250,7 +250,7 @@ export function PrintRig({
       if (!live) return
 
       cls('torn', true)
-      const TEAR_MS = 1150
+      const TEAR_MS = 820
       await frames((_dt, t) => {
         const e = easeIO(Math.min(1, t / TEAR_MS))
         paper.current!.style.clipPath = paperClip(W, e * W)
@@ -296,7 +296,7 @@ export function PrintRig({
           { transform: 'translateY(29px) rotate(.3deg)', offset: 0.86 },
           { transform: 'translateY(28px) rotate(0deg)' },
         ],
-        { duration: 1500, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' },
+        { duration: 1100, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' },
       ).finished
       if (!live) return
       sheet.current!.getAnimations().forEach((a) => a.cancel())

@@ -19,15 +19,15 @@ const FLOOR = -(MAP_PAGE_H - FRAME_H)
  * The map variant's world is simply not in it.
  */
 const BEATS = [
-  { at: 0.5, step: 'clearing' },
-  { at: 1.2, step: 'crumble' },
-  { at: 3.2, step: 'orb' },
-  { at: 5.6, step: 'card' },
+  { at: 0.41, step: 'clearing' },
+  { at: 0.98, step: 'crumble' },
+  { at: 1.42, step: 'orb' },
+  { at: 3.5, step: 'card' },
   /* Once it has settled it stops being a thing flying over the page and
      becomes the card's artwork, drawn behind the card's own text. */
-  { at: 7.5, step: 'landed' },
-  { at: 9.0, step: 'explore' },
-  { at: 12.2, step: 'more' },
+  { at: 5.1, step: 'landed' },
+  { at: 6.4, step: 'explore' },
+  { at: 9.0, step: 'more' },
 ] as const
 
 type Step = (typeof BEATS)[number]['step'] | 'printing'

@@ -30,9 +30,9 @@ const SHEET = {
   h: PAPER_H,
 }
 
-const CRUMBLE_S = 1.6
-const GATHER_S = 1.9
-const SETTLE_S = 1.3
+const CRUMBLE_S = 0.9
+const GATHER_S = 1.5
+const SETTLE_S = 1.0
 
 export type OrbBeat = 'rest' | 'crumble' | 'orb' | 'card'
 
@@ -107,7 +107,7 @@ export function OrbScene({ beat }: { beat: OrbBeat }) {
         }}
         initial={{ opacity: 1 }}
         animate={{ opacity: crumbling ? 0 : 1 }}
-        transition={{ duration: CRUMBLE_S * 0.55, ease: 'easeIn' }}
+        transition={{ duration: CRUMBLE_S * 0.5, ease: 'easeIn' }}
       >
         <svg
           className="absolute left-0 top-0"
@@ -138,7 +138,7 @@ export function OrbScene({ beat }: { beat: OrbBeat }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: crumbling ? 1 : 0, ...to }}
         transition={{
-          opacity: { duration: CRUMBLE_S * 0.5, ease: 'easeOut' },
+          opacity: { duration: CRUMBLE_S * 0.45, ease: 'easeOut' },
           default: carded
             ? { type: 'spring', stiffness: 86, damping: 17, mass: 1.15 }
             : { duration: GATHER_S, ease: [0.5, 0, 0.2, 1] },
@@ -152,6 +152,7 @@ export function OrbScene({ beat }: { beat: OrbBeat }) {
           spin={spin}
           source="sheet"
           sheet={SHEET}
+          scatter={0.3}
           colour={carded ? '#bfe9e4' : '#9aa0a6'}
           orbFrom={carded ? '#dcf5f1' : '#d1d1d1'}
           orbTo={carded ? '#8fd3cc' : '#666666'}

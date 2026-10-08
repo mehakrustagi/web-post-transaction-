@@ -22,21 +22,21 @@ const FLOOR = -(PAGE_H - FRAME_H)
  */
 const BEATS = [
   /* The printer and the headline leave, so the slip has the frame to itself. */
-  { at: 0.6, step: 'clearing' },
+  { at: 0.47, step: 'clearing' },
   /* The slip shrinks back to the middle; the card turns over behind it at the
      same moment, which is the only time the two cards share the screen. */
-  { at: 1.2, step: 'detached' },
+  { at: 0.94, step: 'detached' },
   /* The bare card and the truck's arrival say the same thing, so the gap
      between them is only as long as it takes the vehicle to appear. */
-  { at: 2.6, step: 'gift' },
+  { at: 2.03, step: 'gift' },
   /* Long enough to hold the line unrevealed, sweep it, and then look at it. */
-  { at: 5.0, step: 'pickup' },
-  { at: 9.6, step: 'detail' },
-  { at: 12.6, step: 'page' },
+  { at: 3.9, step: 'pickup' },
+  { at: 7.49, step: 'detail' },
+  { at: 9.83, step: 'page' },
   /* The page carries on below the fold, so it takes itself down it. */
-  { at: 15.8, step: 'offers' },
-  { at: 19.6, step: 'explore' },
-  { at: 23.0, step: 'more' },
+  { at: 12.32, step: 'offers' },
+  { at: 15.29, step: 'explore' },
+  { at: 17.94, step: 'more' },
 ] as const
 
 /** How far the page has scrolled at each stop, in frame pixels. */
