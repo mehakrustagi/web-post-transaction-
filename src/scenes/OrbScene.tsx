@@ -30,13 +30,12 @@ const SHEET = {
   h: PAPER_H,
 }
 
-const CRUMBLE_S = 0.9
 const GATHER_S = 1.5
 const SETTLE_S = 1.0
 
-export type OrbBeat = 'rest' | 'crumble' | 'orb' | 'card'
+export type OrbBeat = 'rest' | 'crumble' | 'card'
 
-const ORDER: OrbBeat[] = ['rest', 'crumble', 'orb', 'card']
+const ORDER: OrbBeat[] = ['rest', 'crumble', 'card']
 const at = (beat: OrbBeat, stop: OrbBeat) => ORDER.indexOf(beat) >= ORDER.indexOf(stop)
 
 /**
@@ -53,25 +52,29 @@ export function OrbScene({ beat }: { beat: OrbBeat }) {
   const morph = useMotionValue(0)
   const spin = useMotionValue(0)
 
+  /*
+   * One beat, not two. The paper used to finish coming apart before anything
+   * moved, which left a second of dots standing still in the shape of a
+   * receipt. Now the sheet's dissolve and the dots' flight are the same event.
+   */
   const crumbling = at(beat, 'crumble')
-  const orbed = at(beat, 'orb')
   const carded = at(beat, 'card')
 
   const seat = carded ? CARD_SLOT : ORB_REST
   const to = {
-    x: orbed ? seat.cx - CANVAS_MID.x : 0,
-    y: orbed ? seat.cy - CANVAS_MID.y : 0,
-    scale: orbed ? seat.d / ORB_D : 1,
+    x: crumbling ? seat.cx - CANVAS_MID.x : 0,
+    y: crumbling ? seat.cy - CANVAS_MID.y : 0,
+    scale: crumbling ? seat.d / ORB_D : 1,
   }
 
   useEffect(() => {
     if (still) return
-    const run = animate(morph, orbed ? 1 : 0, { duration: GATHER_S, ease: [0.5, 0, 0.2, 1] })
+    const run = animate(morph, crumbling ? 1 : 0, { duration: GATHER_S, ease: [0.42, 0, 0.3, 1] })
     return () => run.stop()
-  }, [orbed, morph, still])
+  }, [crumbling, morph, still])
 
   useEffect(() => {
-    if (still || !orbed) return
+    if (still || !crumbling) return
     const run = animate(spin, Math.PI * 2, {
       duration: 34,
       ease: 'linear',
@@ -79,7 +82,7 @@ export function OrbScene({ beat }: { beat: OrbBeat }) {
       delay: GATHER_S * 0.5,
     })
     return () => run.stop()
-  }, [orbed, spin, still])
+  }, [crumbling, spin, still])
 
   const flap = useMemo(() => flapPath(PAPER_W), [])
 
@@ -107,7 +110,9 @@ export function OrbScene({ beat }: { beat: OrbBeat }) {
         }}
         initial={{ opacity: 1 }}
         animate={{ opacity: crumbling ? 0 : 1 }}
-        transition={{ duration: CRUMBLE_S * 0.5, ease: 'easeIn' }}
+        /* Paced to the wave of dots coming off it rather than to a clock of
+           its own, so the sheet is thinning exactly where they have left. */
+        transition={{ duration: GATHER_S * 0.62, ease: [0.4, 0, 0.75, 0.6] }}
       >
         <svg
           className="absolute left-0 top-0"
@@ -138,10 +143,10 @@ export function OrbScene({ beat }: { beat: OrbBeat }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: crumbling ? 1 : 0, ...to }}
         transition={{
-          opacity: { duration: CRUMBLE_S * 0.45, ease: 'easeOut' },
+          opacity: { duration: 0.18 },
           default: carded
             ? { type: 'spring', stiffness: 86, damping: 17, mass: 1.15 }
-            : { duration: GATHER_S, ease: [0.5, 0, 0.2, 1] },
+            : { duration: GATHER_S, ease: [0.42, 0, 0.3, 1] },
         }}
       >
         <WorldDots

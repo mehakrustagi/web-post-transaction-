@@ -21,19 +21,18 @@ const FLOOR = -(MAP_PAGE_H - FRAME_H)
 const BEATS = [
   { at: 0.41, step: 'clearing' },
   { at: 0.98, step: 'crumble' },
-  { at: 1.42, step: 'orb' },
-  { at: 3.5, step: 'card' },
+  { at: 2.75, step: 'card' },
   /* Once it has settled it stops being a thing flying over the page and
      becomes the card's artwork, drawn behind the card's own text. */
-  { at: 5.1, step: 'landed' },
-  { at: 6.4, step: 'explore' },
-  { at: 9.0, step: 'more' },
+  { at: 4.35, step: 'landed' },
+  { at: 5.65, step: 'explore' },
+  { at: 8.25, step: 'more' },
 ] as const
 
 type Step = (typeof BEATS)[number]['step'] | 'printing'
 
 /** And while one of these is, the dots are. */
-const ORB_BEATS: OrbBeat[] = ['crumble', 'orb', 'card']
+const ORB_BEATS: OrbBeat[] = ['crumble', 'card']
 
 const clamp = (v: number) => Math.min(0, Math.max(FLOOR, v))
 const stopAt = (y: number): MapStop => (y > -300 ? 'page' : y > -740 ? 'explore' : 'more')

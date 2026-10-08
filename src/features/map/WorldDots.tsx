@@ -17,6 +17,8 @@ function mix(a: string, b: string, t: number) {
 }
 /** Golden angle, for spacing the sphere's points evenly. */
 const PHI = Math.PI * (3 - Math.sqrt(5))
+/** How much of the morph is spent handing out start times rather than moving. */
+const STAGGER = 0.5
 
 /**
  * The world as dots, and the same dots gathered into an orb.
@@ -86,7 +88,7 @@ export function WorldDots({
    */
   const seats = useRef<Float32Array>(null as unknown as Float32Array)
   if (!seats.current) {
-    const s = new Float32Array(COUNT * 6)
+    const s = new Float32Array(COUNT * 7)
     for (let i = 0; i < COUNT; i++) {
       const y = 1 - (i / (COUNT - 1)) * 2
       const r = Math.sqrt(Math.max(0, 1 - y * y))
@@ -108,15 +110,15 @@ export function WorldDots({
       const n3 = Math.sin(16.3 * ux - 0.9) * Math.cos(14.1 * uy + 1.4)
       const k = 0.845 + 0.095 * n1 + 0.062 * n2 + 0.028 * n3
 
-      s[i * 6] = ux * k
-      s[i * 6 + 1] = uy * k
-      s[i * 6 + 2] = uz * k
+      s[i * 7] = ux * k
+      s[i * 7 + 1] = uy * k
+      s[i * 7 + 2] = uz * k
       /*
        * Heavier towards the bottom, where the design's orb gathers its weight.
        * `uy` of +1 is the *bottom* of the screen, not the top — the projection
        * below adds it to the centre, so down is positive.
        */
-      s[i * 6 + 3] = 0.6 + 0.5 * Math.pow((uy + 1) / 2, 1.4)
+      s[i * 7 + 3] = 0.6 + 0.5 * Math.pow((uy + 1) / 2, 1.4)
       /*
        * Which way this one flies on the way across, and how far. Nothing goes
        * straight from where it was to where it is going — paper coming apart
@@ -124,8 +126,14 @@ export function WorldDots({
        */
       const a = (i * 2.399963) % (Math.PI * 2)
       const far = 0.35 + 0.65 * ((Math.sin(i * 91.7) + 1) / 2)
-      s[i * 6 + 4] = Math.cos(a) * far
-      s[i * 6 + 5] = Math.sin(a) * far
+      s[i * 7 + 4] = Math.cos(a) * far
+      s[i * 7 + 5] = Math.sin(a) * far
+      /*
+       * When this one lets go. Spread out, so the sheet comes apart in a wave
+       * rather than all at once — which is what lets the dots be moving while
+       * the paper they are leaving is still there.
+       */
+      s[i * 7 + 6] = (Math.sin(i * 53.7) + 1) / 2
     }
     seats.current = s
   }
@@ -167,7 +175,7 @@ export function WorldDots({
     let frame = 0
     const draw = (now: number) => {
       const rev = reveal.get()
-      const m = morph.get()
+      const whole = morph.get()
       const a = spin.get()
       /*
        * Nothing ever sits perfectly still. Without this the field is a frozen
@@ -188,13 +196,23 @@ export function WorldDots({
        * drawn with. Two operations rather than thousands.
        */
       ctx.fillStyle = '#000'
-      const r = 1.4 + m * 0.5
 
       for (let i = 0; i < COUNT; i++) {
         const mx = MAP_DOTS[i * 2]
         if (mx > rev) continue
 
         const my = MAP_DOTS[i * 2 + 1]
+        /*
+         * Each dot runs its own clock when it is leaving a sheet: it holds its
+         * place until its moment, then takes the whole journey in what is left.
+         * The sheet therefore comes apart in a wave, and dots are in flight
+         * while the paper under them is still on screen.
+         */
+        const m =
+          source === 'sheet'
+            ? Math.max(0, Math.min(1, (whole - seat[i * 7 + 6] * STAGGER) / (1 - STAGGER)))
+            : whole
+        const r = 1.4 + m * 0.5
         let x: number
         let y: number
         if (source === 'sheet') {
@@ -207,9 +225,9 @@ export function WorldDots({
         let dim = 1
 
         if (m > 0) {
-          const sx = seat[i * 6]
-          const sy = seat[i * 6 + 1]
-          const sz = seat[i * 6 + 2]
+          const sx = seat[i * 7]
+          const sy = seat[i * 7 + 1]
+          const sz = seat[i * 7 + 2]
           /* Turn about the vertical, then drop the depth: a flat shadow of a
              turning sphere, which is all the design's orb is. */
           const rx = sx * cos - sz * sin
@@ -224,28 +242,30 @@ export function WorldDots({
            * it hard leaves a shell with nothing inside.
            */
           const front = (rz + 1) / 2
-          dim = 1 - m + m * Math.min(1, (0.72 + 0.28 * front) * seat[i * 6 + 3])
+          dim = 1 - m + m * Math.min(1, (0.72 + 0.28 * front) * seat[i * 7 + 3])
 
           /* Thrown wide at the halfway point, home again by the end. */
           const fling = Math.sin(m * Math.PI) * spread
-          x += seat[i * 6 + 4] * fling
-          y += seat[i * 6 + 5] * fling
+          x += seat[i * 7 + 4] * fling
+          y += seat[i * 7 + 5] * fling
         }
 
-        const px = seat[i * 6 + 4]
-        const py = seat[i * 6 + 5]
+        const px = seat[i * 7 + 4]
+        const py = seat[i * 7 + 5]
         const breath = drift * (0.3 + 0.7 * m)
         x += Math.sin(t + px * 9) * breath
         y += Math.cos(t * 0.9 + py * 9) * breath
 
-        ctx.globalAlpha = dim
+        /* A dot on the sheet is under the paper, so it only shows once it
+           has started to move. */
+        ctx.globalAlpha = source === 'sheet' ? dim * Math.min(1, m * 7) : dim
         ctx.fillRect(x, y, r, r)
       }
       ctx.globalAlpha = 1
 
       const tint = ctx.createLinearGradient(0, 0, width, 0)
-      tint.addColorStop(0, mix(colour, orbFrom, m))
-      tint.addColorStop(1, mix(colour, orbTo, m))
+      tint.addColorStop(0, mix(colour, orbFrom, whole))
+      tint.addColorStop(1, mix(colour, orbTo, whole))
       ctx.globalCompositeOperation = 'source-in'
       ctx.fillStyle = tint
       ctx.fillRect(0, 0, width, height)
