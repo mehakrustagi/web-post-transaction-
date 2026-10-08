@@ -253,7 +253,8 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
               spin={spin}
               /* Grey on the card it is printed on, pale once it is on the teal. */
               colour={carded ? '#bfe9e4' : '#8d939a'}
-              orbColour={carded ? '#8fd3cc' : '#70767d'}
+              orbFrom={carded ? '#dcf5f1' : '#d1d1d1'}
+              orbTo={carded ? '#8fd3cc' : '#666666'}
             />
 
             {/* The routes ride with the map, in the map's own coordinates. */}

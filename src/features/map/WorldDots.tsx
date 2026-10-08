@@ -36,7 +36,8 @@ export function WorldDots({
   morph,
   spin,
   colour = '#9aa0a6',
-  orbColour = '#70767d',
+  orbFrom = '#d1d1d1',
+  orbTo = '#666666',
 }: {
   width: number
   height: number
@@ -47,8 +48,12 @@ export function WorldDots({
   /** Turns of the sphere, in radians. */
   spin: MotionValue<number>
   colour?: string
-  /** The orb carries more weight than the map does, so it is drawn darker. */
-  orbColour?: string
+  /**
+   * The orb is not a flat tone like the map — it is lit, pale on one side and
+   * falling away to the other, so it takes a gradient rather than a colour.
+   */
+  orbFrom?: string
+  orbTo?: string
 }) {
   const canvas = useRef<HTMLCanvasElement>(null)
 
@@ -126,9 +131,14 @@ export function WorldDots({
       const seat = seats.current
 
       ctx.clearRect(0, 0, width, height)
-      /* One fill for the whole frame: a per-dot colour would be 8,476 state
-         changes, and the only thing that varies is how far along the morph is. */
-      ctx.fillStyle = mix(colour, orbColour, m)
+      /*
+       * Drawn flat, then tinted. Giving each dot its own colour would be 8,476
+       * fill changes a frame; instead the whole field is laid down in one tone
+       * and a gradient is composited through it with `source-in`, which keeps
+       * the gradient only where a dot is and respects the alpha each one was
+       * drawn with. Two operations rather than thousands.
+       */
+      ctx.fillStyle = '#000'
       const r = 1.4 + m * 0.5
 
       for (let i = 0; i < COUNT; i++) {
@@ -165,12 +175,21 @@ export function WorldDots({
         ctx.fillRect(x, y, r, r)
       }
       ctx.globalAlpha = 1
+
+      const tint = ctx.createLinearGradient(0, 0, width, 0)
+      tint.addColorStop(0, mix(colour, orbFrom, m))
+      tint.addColorStop(1, mix(colour, orbTo, m))
+      ctx.globalCompositeOperation = 'source-in'
+      ctx.fillStyle = tint
+      ctx.fillRect(0, 0, width, height)
+      ctx.globalCompositeOperation = 'source-over'
+
       frame = requestAnimationFrame(draw)
     }
 
     draw()
     return () => cancelAnimationFrame(frame)
-  }, [width, height, reveal, morph, spin, colour, orbColour])
+  }, [width, height, reveal, morph, spin, colour, orbFrom, orbTo])
 
   return <canvas ref={canvas} style={{ width, height, display: 'block' }} />
 }
