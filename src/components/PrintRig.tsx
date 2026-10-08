@@ -283,6 +283,17 @@ export function flapPath(front = PAPER_W) {
     })(),
     /** Which way the roll has lifted, for what it throws behind it. */
     lift: { x: -mx, y: -my },
+    /**
+     * The sheet that is still there, which is the only thing a shadow can land
+     * on.
+     *
+     * Everything above the crease has rolled into the tube, so there is no
+     * paper there to catch anything — and a shadow drawn across that gap sits
+     * on the background, which is the one place light was never blocked.
+     */
+    clip:
+      `M0 ${by.toFixed(2)}L${ax.toFixed(2)} ${ay.toFixed(2)}` +
+      `L${W} ${ay.toFixed(2)}L${W} ${PAPER_H}L0 ${PAPER_H}Z`,
     /** The axis the cast runs on, which reaches further than the tube does. */
     castGrad: {
       x1: mid[0],
@@ -363,6 +374,9 @@ export function FlapArt({
         {/* The inside of the tube. Darkest where it disappears round the far
             side, brightest on the near lip, which is the only light that gets
             in there. */}
+        <clipPath id={`${id}Paper`}>
+          <path data-clip d={f.clip} />
+        </clipPath>
         <linearGradient id={`${id}Mouth`} gradientUnits="userSpaceOnUse" {...full.grad}>
           <stop offset="0" stopColor="#8D909B" />
           <stop offset=".45" stopColor="#E7E8EE" />
@@ -383,18 +397,21 @@ export function FlapArt({
           if (g && group) group(g)
         }}
       >
-        {/* Behind it, on the side the paper has lifted away from — the roll
-            stands clear of the sheet there and what is underneath goes dark.
-            Without it the cone is a shape sitting in a hole. */}
-        <path
-          data-back
-          d={f.d}
-          fill="#1A1D2B"
-          opacity=".2"
-          filter={`url(#${id}Back)`}
-          transform={`translate(${(f.lift.x * 13).toFixed(2)} ${(f.lift.y * 13).toFixed(2)})`}
-        />
-        <path data-cast d={f.cast} fill={`url(#${id}Cast)`} filter={`url(#${id}Soft)`} />
+        {/* Both of these land on the sheet or not at all. */}
+        <g clipPath={`url(#${id}Paper)`}>
+          {/* Behind it, on the side the paper has lifted away from — the roll
+              stands clear of the sheet there and what is still underneath it
+              goes dark. */}
+          <path
+            data-back
+            d={f.d}
+            fill="#1A1D2B"
+            opacity=".22"
+            filter={`url(#${id}Back)`}
+            transform={`translate(${(f.lift.x * 13).toFixed(2)} ${(f.lift.y * 13).toFixed(2)})`}
+          />
+          <path data-cast d={f.cast} fill={`url(#${id}Cast)`} filter={`url(#${id}Soft)`} />
+        </g>
         <path data-body d={f.d} fill={`url(#${id}Roll)`} />
         <path data-body d={f.d} fill={`url(#${id}Core)`} />
         <ellipse
@@ -613,6 +630,7 @@ export function PrintRig({
       const c = flapPath(front)
       g.querySelectorAll('[data-body]').forEach((el) => el.setAttribute('d', c.d))
       g.querySelector('[data-cast]')?.setAttribute('d', c.cast)
+      g.querySelector('[data-clip]')?.setAttribute('d', c.clip)
       const back = g.querySelector('[data-back]')
       back?.setAttribute('d', c.d)
       back?.setAttribute(
