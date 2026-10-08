@@ -215,7 +215,7 @@ export function flapPath(front = PAPER_W) {
    * the sheet reads as a slash across the corner, not as a curl.
    */
   const strip = (ax * (by - ay)) / L
-  const R = strip * 0.5
+  const R = strip * 0.58
 
   /** The contact line, and the far side of the tube above it. */
   const at = (s: number) => [ax + nx * L * s, ay + ny * L * s] as const
@@ -261,6 +261,28 @@ export function flapPath(front = PAPER_W) {
       x2: mid[0] + mx * R * 2,
       y2: mid[1] + my * R * 2,
     },
+    /**
+     * The open end of the tube, which is the thing you actually read as a roll.
+     *
+     * Seen from the front it is an ellipse: the full width of the tube across,
+     * and foreshortened along its own axis. Drawn as its own shape rather than
+     * left as part of the silhouette, because what makes it the mouth of a
+     * tube is that you can see *into* it — the inner face of the paper, lit
+     * from the open side.
+     */
+    mouth: (() => {
+      const [bX, bY] = at(1)
+      const r = rad(1)
+      return {
+        cx: bX + mx * r,
+        cy: bY + my * r,
+        rx: r,
+        ry: r * 0.34,
+        angle: (Math.atan2(my, mx) * 180) / Math.PI,
+      }
+    })(),
+    /** Which way the roll has lifted, for what it throws behind it. */
+    lift: { x: -mx, y: -my },
     /** The axis the cast runs on, which reaches further than the tube does. */
     castGrad: {
       x1: mid[0],
@@ -286,13 +308,22 @@ export function flapPath(front = PAPER_W) {
 export function FlapArt({
   id,
   front = PAPER_W,
-  paths,
+  group,
 }: {
   id: string
   /** How far the tear has run, which is what the roll is made of. */
   front?: number
-  /** Handed back so the printer can redraw them per frame as it grows. */
-  paths?: (els: SVGPathElement[]) => void
+  /**
+   * Handed back so the printer can redraw the whole roll per frame.
+   *
+   * The group, not the paths. The roll is four shapes that are each a
+   * different function of the same tear front — the body, the swollen shadow
+   * it throws, the darkness behind it and the open mouth — and handing back a
+   * flat list of paths meant they all got the body's outline written onto
+   * them, which flattened the shadow to the same size as the tube and left
+   * the mouth frozen where the cut started.
+   */
+  group?: (el: SVGGElement) => void
 }) {
   const f = flapPath(front)
   const full = flapPath(PAPER_W)
@@ -323,9 +354,20 @@ export function FlapArt({
           <stop offset=".62" stopColor="#1A1D2B" stopOpacity=".3" />
           <stop offset="1" stopColor="#1A1D2B" stopOpacity="0" />
         </linearGradient>
-        <filter id={`${id}Soft`} x="-30%" y="-30%" width="160%" height="160%">
+        <filter id={`${id}Soft`} x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur stdDeviation="6" />
         </filter>
+        <filter id={`${id}Back`} x="-45%" y="-45%" width="190%" height="190%">
+          <feGaussianBlur stdDeviation="11" />
+        </filter>
+        {/* The inside of the tube. Darkest where it disappears round the far
+            side, brightest on the near lip, which is the only light that gets
+            in there. */}
+        <linearGradient id={`${id}Mouth`} gradientUnits="userSpaceOnUse" {...full.grad}>
+          <stop offset="0" stopColor="#8D909B" />
+          <stop offset=".45" stopColor="#E7E8EE" />
+          <stop offset="1" stopColor="#FFFFFF" />
+        </linearGradient>
         {/* The core of the roll, laid over the top. The gradient alone gives
             the turn its tone; this gives it its depth, and it has to be its
             own layer because it is darkest exactly where the roll is
@@ -338,12 +380,31 @@ export function FlapArt({
       </defs>
       <g
         ref={(g) => {
-          if (g && paths) paths([...g.querySelectorAll('path')])
+          if (g && group) group(g)
         }}
       >
-        <path d={f.cast} fill={`url(#${id}Cast)`} filter={`url(#${id}Soft)`} />
-        <path d={f.d} fill={`url(#${id}Roll)`} />
-        <path d={f.d} fill={`url(#${id}Core)`} />
+        {/* Behind it, on the side the paper has lifted away from — the roll
+            stands clear of the sheet there and what is underneath goes dark.
+            Without it the cone is a shape sitting in a hole. */}
+        <path
+          data-back
+          d={f.d}
+          fill="#1A1D2B"
+          opacity=".2"
+          filter={`url(#${id}Back)`}
+          transform={`translate(${(f.lift.x * 13).toFixed(2)} ${(f.lift.y * 13).toFixed(2)})`}
+        />
+        <path data-cast d={f.cast} fill={`url(#${id}Cast)`} filter={`url(#${id}Soft)`} />
+        <path data-body d={f.d} fill={`url(#${id}Roll)`} />
+        <path data-body d={f.d} fill={`url(#${id}Core)`} />
+        <ellipse
+          cx={f.mouth.cx}
+          cy={f.mouth.cy}
+          rx={f.mouth.rx}
+          ry={f.mouth.ry}
+          fill={`url(#${id}Mouth)`}
+          transform={`rotate(${f.mouth.angle.toFixed(2)} ${f.mouth.cx.toFixed(2)} ${f.mouth.cy.toFixed(2)})`}
+        />
       </g>
     </>
   )
@@ -394,8 +455,8 @@ export function PrintRig({
   const shades = useRef<(HTMLDivElement | null)[]>([])
   const stub = useRef<HTMLDivElement>(null)
   const flap = useRef<SVGSVGElement>(null)
-  /** The two paths the curl is drawn with, redrawn as it unrolls. */
-  const curl = useRef<SVGPathElement[]>([])
+  /** The roll's own group, redrawn as the tear grows it. */
+  const curl = useRef<SVGGElement | null>(null)
   const box = useRef<HTMLDivElement>(null)
   const still = useReducedMotion()
   const rest = useRef(onRest)
@@ -545,12 +606,38 @@ export function PrintRig({
       }
     }
 
+    /** Every shape the roll is made of, at the tear front it is made from. */
+    const drawCurl = (front: number) => {
+      const g = curl.current
+      if (!g) return
+      const c = flapPath(front)
+      g.querySelectorAll('[data-body]').forEach((el) => el.setAttribute('d', c.d))
+      g.querySelector('[data-cast]')?.setAttribute('d', c.cast)
+      const back = g.querySelector('[data-back]')
+      back?.setAttribute('d', c.d)
+      back?.setAttribute(
+        'transform',
+        `translate(${(c.lift.x * 13).toFixed(2)} ${(c.lift.y * 13).toFixed(2)})`,
+      )
+      const m = g.querySelector('ellipse')
+      if (!m) return
+      m.setAttribute('cx', c.mouth.cx.toFixed(2))
+      m.setAttribute('cy', c.mouth.cy.toFixed(2))
+      m.setAttribute('rx', c.mouth.rx.toFixed(2))
+      m.setAttribute('ry', c.mouth.ry.toFixed(2))
+      m.setAttribute(
+        'transform',
+        `rotate(${c.mouth.angle.toFixed(2)} ${c.mouth.cx.toFixed(2)} ${c.mouth.cy.toFixed(2)})`,
+      )
+    }
+
     setClip(paperClip(W, 0))
     stub.current!.style.clipPath = poly([[0, 0], [W, 0], ...tearLine(0, W).reverse()])
     setFeed(0)
 
     if (stillRef.current) {
       setClip(paperClip(W, W, true))
+      drawCurl(W)
       cls('printing', true)
       cls('torn', true)
       cls('flapped', true)
@@ -653,10 +740,7 @@ export function PrintRig({
           curlAt = t
           cls('flapped', true)
         }
-        if (curlAt) {
-          const d = flapPath(front).d
-          for (const path of curl.current) path.setAttribute('d', d)
-        }
+        if (curlAt) drawCurl(front)
         /* The fold reaches a good way down the side, so the clip has to be
            written to every rib it crosses — not just the two the tear line
            itself lives in. */
@@ -670,6 +754,7 @@ export function PrintRig({
 
       // 3 · and it drops, already cut and already curled
       setClip(paperClip(W, W, true))
+      drawCurl(W)
       stub.current?.animate(
         [
           { transform: 'translateY(0)' },
@@ -887,8 +972,8 @@ export function PrintRig({
               <FlapArt
                 id="flap"
                 front={FW}
-                paths={(els) => {
-                  curl.current = els
+                group={(g) => {
+                  curl.current = g
                 }}
               />
             </svg>
