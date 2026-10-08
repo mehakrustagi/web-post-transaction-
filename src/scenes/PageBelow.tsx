@@ -1,6 +1,7 @@
 import { motion, type MotionValue } from 'framer-motion'
 import { EXPLORE, LINKS, type Offer, OFFERS } from '../content'
 import { CardOrb } from '../features/map/CardOrb'
+import { CloudShader } from '../components/ui/cloud-shader'
 
 const A = '/assets'
 const EASE = [0.22, 0.8, 0.3, 1] as const
@@ -145,6 +146,26 @@ function Rule({ top, show }: { top: number; show: boolean }) {
  * rule, then a figure with a stepper on the left and a table on the right.
  * Only the fill, the artwork and the words change.
  */
+/** The card's still artwork, which is also what stands in for the shader. */
+function Art({ offer }: { offer: Offer }) {
+  return (
+    <img
+      src={`${A}/${offer.art.src}`}
+      alt=""
+      aria-hidden
+      className="absolute max-w-none object-cover"
+      style={{
+        left: offer.art.left,
+        top: offer.art.top,
+        width: offer.art.width,
+        height: offer.art.height,
+        opacity: offer.art.opacity,
+        transform: offer.art.flip ? 'scaleY(-1)' : undefined,
+      }}
+    />
+  )
+}
+
 export function OfferCard({
   offer,
   art = true,
@@ -162,22 +183,19 @@ export function OfferCard({
       style={{ width: 785, height: 300, backgroundImage: offer.bg }}
     >
       {slot}
-      {art && (
-      <img
-        src={`${A}/${offer.art.src}`}
-        alt=""
-        aria-hidden
-        className="absolute max-w-none object-cover"
-        style={{
-          left: offer.art.left,
-          top: offer.art.top,
-          width: offer.art.width,
-          height: offer.art.height,
-          opacity: offer.art.opacity,
-          transform: offer.art.flip ? 'scaleY(-1)' : undefined,
-        }}
-      />
-      )}
+      {/*
+        The sky, under everything the card says. It replaces the still cloud
+        rather than sitting behind it: two layers of the same weather, one of
+        them moving, reads as a print with a fault on it.
+      */}
+      {art &&
+        (offer.sky ? (
+          <CloudShader className="absolute inset-0 h-full w-full" weight={0.42}>
+            <Art offer={offer} />
+          </CloudShader>
+        ) : (
+          <Art offer={offer} />
+        ))}
 
       <img
         src={`${A}/${offer.icon}`}

@@ -90,6 +90,8 @@ export const OFFERS = [
     kicker: 'Mandatory for everyone before take-off',
     top: 696,
     icon: 'iconShield.svg',
+    /* Weather, not a photograph of weather — see `CloudShader`. */
+    sky: true,
     art: { src: 'cardCloud.png', left: 228, top: 177, width: 328, height: 158, opacity: 0.14, flip: true },
     bg: 'linear-gradient(175.298deg, #0b3299 8.856%, #6a9eff 136.62%)',
     title: 'Travel Insurance',
@@ -146,6 +148,8 @@ export type Offer = {
   icon: string
   art: { src: string; left: number; top: number; width: number; height: number; opacity: number; flip: boolean }
   bg: string
+  /** Whether the card's backdrop is a running cloud shader. */
+  sky?: boolean
   title: string
   blurb: string
   figureLabel: string
