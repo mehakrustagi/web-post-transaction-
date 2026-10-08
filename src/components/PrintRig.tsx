@@ -57,8 +57,8 @@ const TD = 4
  * and lies across the face, covering what is printed under it. Proportional to
  * the sheet, because that is what decides how far it falls.
  */
-const FW = PAPER_W * 0.6
-const FH = PAPER_H * 0.4
+const FW = PAPER_W * 0.34
+const FH = PAPER_H * 0.2
 
 /**
  * The cloth, as geometry rather than as a filter.
@@ -144,7 +144,7 @@ export function paperClip(W: number, front: number, withFlap?: boolean) {
  * of the geometry, and it is what gives the shape its taper — a reflection
  * can only ever give you the triangle back.
  */
-export function flapPath(W: number) {
+export function flapPath(W: number, open = 1) {
   const ax = W - FW
   const ay = T + TD
   const bx = W
@@ -161,7 +161,8 @@ export function flapPath(W: number) {
    * where a flat fold would have put the corner, because paper going round a
    * curve never reaches as far as paper going round a line.
    */
-  const H = FW * Math.abs(ny) * 0.92
+  const FULL = FW * Math.abs(ny) * 0.92
+  const H = FULL * open
 
   const N = 56
   const pts: [number, number][] = []
@@ -183,9 +184,14 @@ export function flapPath(W: number) {
       'Z',
     /* Across the roll, not along the sheet: this is the axis everything about
        the curl is shaded on. */
-    grad: { x1: mid.x, y1: mid.y, x2: mid.x + mx * H, y2: mid.y + my * H },
+    /* Pinned to the curl at full size, never to how far it has got. The
+       gradient is the roll's own shading, so as it unrolls it should reveal
+       more of it — scaling the axis with the opening would instead squeeze
+       the whole roll's worth of tone into whatever has appeared so far, and
+       the curl would arrive already lit as if it were finished. */
+    grad: { x1: mid.x, y1: mid.y, x2: mid.x + mx * FULL, y2: mid.y + my * FULL },
     origin: `${mid.x}px ${mid.y}px`,
-    height: Math.max(...pts.map(([, y]) => y)) + 30,
+    height: by + FULL + 30,
   }
 }
 
@@ -196,12 +202,25 @@ export function flapPath(W: number) {
  * here and they bring their own `<svg>` — which is all that differs between
  * them, because only the printer's copy has to be animated.
  */
-export function FlapArt({ id, w = PAPER_W }: { id: string; w?: number }) {
-  const f = flapPath(w)
+export function FlapArt({
+  id,
+  w = PAPER_W,
+  open = 1,
+  paths,
+}: {
+  id: string
+  w?: number
+  /** How far the corner has unrolled, 0 to 1. */
+  open?: number
+  /** Handed back so the printer can redraw them per frame as it opens. */
+  paths?: (els: SVGPathElement[]) => void
+}) {
+  const f = flapPath(w, open)
+  const full = flapPath(w, 1)
   return (
     <>
       <defs>
-        <linearGradient id={`${id}Roll`} gradientUnits="userSpaceOnUse" {...f.grad}>
+        <linearGradient id={`${id}Roll`} gradientUnits="userSpaceOnUse" {...full.grad}>
           {/*
             Read across the roll from the crease outward: deep inside the
             curl where almost no light reaches, opening out through the
@@ -221,14 +240,20 @@ export function FlapArt({ id, w = PAPER_W }: { id: string; w?: number }) {
             the turn its tone; this gives it its depth, and it has to be its
             own layer because it is darkest exactly where the roll is
             tightest rather than where the gradient starts. */}
-        <linearGradient id={`${id}Core`} gradientUnits="userSpaceOnUse" {...f.grad}>
+        <linearGradient id={`${id}Core`} gradientUnits="userSpaceOnUse" {...full.grad}>
           <stop offset="0" stopColor="#5C5E6B" stopOpacity=".42" />
           <stop offset=".07" stopColor="#7A7C88" stopOpacity=".2" />
           <stop offset=".22" stopColor="#9A9CA8" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={f.d} fill={`url(#${id}Roll)`} />
-      <path d={f.d} fill={`url(#${id}Core)`} />
+      <g
+        ref={(g) => {
+          if (g && paths) paths([...g.querySelectorAll('path')])
+        }}
+      >
+        <path d={f.d} fill={`url(#${id}Roll)`} />
+        <path d={f.d} fill={`url(#${id}Core)`} />
+      </g>
     </>
   )
 }
@@ -275,6 +300,8 @@ export function PrintRig({
   const shades = useRef<(HTMLDivElement | null)[]>([])
   const stub = useRef<HTMLDivElement>(null)
   const flap = useRef<SVGSVGElement>(null)
+  /** The two paths the curl is drawn with, redrawn as it unrolls. */
+  const curl = useRef<SVGPathElement[]>([])
   const box = useRef<HTMLDivElement>(null)
   const still = useReducedMotion()
   const rest = useRef(onRest)
@@ -528,15 +555,22 @@ export function PrintRig({
        * flat before it settles — which is what a piece of paper that size does
        * when it is no longer held.
        */
-      flap.current?.animate(
-        [
-          { transform: 'scale(.82) rotate(-26deg)', opacity: 0 },
-          { transform: 'scale(1.04) rotate(5deg)', opacity: 1, offset: 0.55 },
-          { transform: 'scale(.99) rotate(-1.5deg)', opacity: 1, offset: 0.8 },
-          { transform: 'scale(1) rotate(0)', opacity: 1 },
-        ],
-        { duration: 680, easing: 'cubic-bezier(.3,.9,.4,1)' },
-      )
+      /*
+       * It unrolls. It used to arrive as a finished shape that scaled and
+       * rotated into place, and a corner that swings in about its own middle
+       * is unmistakably a separate object being laid onto the page — it
+       * leaves the crease on the way. This is the curl's own geometry opening
+       * instead: both ends of the crease are fixed to the sheet at every
+       * frame, because they are the sheet, and what changes is only how far
+       * the paper between them has lifted.
+       */
+      const UNROLL_MS = 620
+      frames((_dt, t) => {
+        const q = Math.min(1, t / UNROLL_MS)
+        const d = flapPath(W, 1 - Math.pow(1 - q, 3)).d
+        for (const path of curl.current) path.setAttribute('d', d)
+        if (q >= 1) return false
+      })
       stub.current?.animate(
         [
           { transform: 'translateY(0)' },
@@ -749,7 +783,15 @@ export function PrintRig({
               viewBox={`0 0 ${PAPER_W} ${f.height}`}
               aria-hidden
             >
-              <FlapArt id="flap" />
+              {/* Starts closed: the corner is still flat on the sheet until
+                  the cut lets it go. */}
+              <FlapArt
+                id="flap"
+                open={0}
+                paths={(els) => {
+                  curl.current = els
+                }}
+              />
             </svg>
 
 

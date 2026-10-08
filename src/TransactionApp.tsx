@@ -147,8 +147,18 @@ export default function TransactionApp() {
                   key={`print-${run}`}
                   className="absolute inset-0"
                   initial={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.55, ease: 'easeInOut' }}
+                  /*
+                   * Swept up, not faded out. The wash launches at this exact
+                   * moment and the receipt is under the thickest part of it,
+                   * so it leaves on the wash's own curve rather than on its
+                   * own — the colour is not passing over a card that quietly
+                   * dissolves, it is taking the card with it.
+                   */
+                  exit={{ opacity: 0, y: -300 }}
+                  transition={{
+                    y: { duration: 0.78, ease: [0.72, 0, 0.24, 1] },
+                    opacity: { duration: 0.5, ease: 'easeIn' },
+                  }}
                 >
                   <PrintScene
                     hero={!page}
@@ -161,7 +171,21 @@ export default function TransactionApp() {
               )}
             </AnimatePresence>
 
-            {/* The page, which the wash uncovers. */}
+            {/*
+              The page, which the wash does not so much uncover as drag into
+              frame behind itself. It comes up from below on the same beat the
+              receipt goes up and out, so the two of them read as one movement
+              through the card rather than as a swap that happened under cover.
+            */}
+            <motion.div
+              className="absolute inset-0"
+              initial={false}
+              animate={{ y: page ? 0 : 150, opacity: page ? 1 : 0 }}
+              transition={{
+                y: { duration: 0.86, ease: [0.18, 0.72, 0.24, 1] },
+                opacity: { duration: 0.5, ease: 'easeOut' },
+              }}
+            >
             <motion.div className="absolute inset-0" style={{ y }}>
               <motion.div
                 className="absolute left-0 top-0 w-full bg-canvas"
@@ -175,6 +199,7 @@ export default function TransactionApp() {
 
               <MapPage at={stop} show={page} landed={landed} spin={spin} canvas={HANDOVER} />
               <Ribbon show={page} label={MAP_OFFER.ribbon} />
+            </motion.div>
             </motion.div>
 
             {/* Over everything, because covering everything is its whole job. */}
