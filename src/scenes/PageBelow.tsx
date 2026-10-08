@@ -1,5 +1,6 @@
-import { motion } from 'framer-motion'
+import { motion, type MotionValue } from 'framer-motion'
 import { EXPLORE, LINKS, type Offer, OFFERS } from '../content'
+import { CardOrb } from '../features/map/CardOrb'
 
 const A = '/assets'
 const EASE = [0.22, 0.8, 0.3, 1] as const
@@ -10,7 +11,22 @@ const EASE = [0.22, 0.8, 0.3, 1] as const
  * Laid out in the page's own coordinates — the frame is 2741 tall and `App`
  * scrolls it under a 915 viewport — so every `top` here is the design's.
  */
-export function PageBelow({ at }: { at: 'page' | 'offers' | 'explore' | 'more' }) {
+export function PageBelow({
+  at,
+  spin,
+  canvas,
+}: {
+  at: 'page' | 'offers' | 'explore' | 'more'
+  /**
+   * The turning the eSIM card's artwork does, handed in rather than started
+   * here — the same arrangement the orb variant uses, and for the same reason:
+   * a canvas that owns its own animation restarts it whenever the thing above
+   * it re-renders.
+   */
+  spin: MotionValue<number>
+  /** The canvas it is drawn on, at the scale the orb page draws it. */
+  canvas: { w: number; h: number; scale: number }
+}) {
   const seen = (stop: typeof at) =>
     ['page', 'offers', 'explore', 'more'].indexOf(at) >=
     ['page', 'offers', 'explore', 'more'].indexOf(stop)
@@ -37,7 +53,22 @@ export function PageBelow({ at }: { at: 'page' | 'offers' | 'explore' | 'more' }
             style={{ left: 281, top: offer.top + 40 }}
             {...rise(i * 2 + 1, 'offers')}
           >
-            <OfferCard offer={offer} />
+            {/*
+              The eSIM card carries the orb here too, revolving exactly as it
+              does on the orb variant — it is the same artwork in the same
+              slot, and it has no business being a still picture on one page
+              and a turning one on another. Only on this page, because this is
+              the only page the card is on.
+            */}
+            {offer.title === 'eSIM data' ? (
+              <OfferCard
+                offer={offer}
+                art={false}
+                slot={<CardOrb show={seen('offers')} spin={spin} canvas={canvas} />}
+              />
+            ) : (
+              <OfferCard offer={offer} />
+            )}
           </motion.div>
         </div>
       ))}

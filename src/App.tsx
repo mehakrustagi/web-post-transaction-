@@ -6,6 +6,7 @@ import { PrintScene } from './scenes/PrintScene'
 import { type Beat, GiftScene } from './scenes/GiftScene'
 import { PageScene, Ribbon, RibbonFold } from './scenes/PageScene'
 import { PageBelow } from './scenes/PageBelow'
+import { HANDOVER } from './scenes/OrbScene'
 
 /** The design is a run of fixed frames; everything inside is in their coordinates. */
 /** The last frame is not a frame but a page, and it runs past the viewport. */
@@ -87,6 +88,10 @@ export default function App() {
    * then on it is theirs — a page that keeps yanking itself back to the next
    * stop under the hand is worse than one that does not move at all.
    */
+  /* The eSIM card's artwork turns from here, not from inside the card — see
+     `PageBelow`. */
+  const spin = useMotionValue(0)
+
   const y = useMotionValue(0)
   const byHand = useRef(false)
   const [stop, setStop] = useState<Stop>('page')
@@ -151,6 +156,13 @@ export default function App() {
   const showPrint = SLIP_STEPS.includes(step)
   /* Every stop from `page` on is the same frame, just scrolled further. */
   const page = step in SCROLL
+  /* The card's artwork turns for as long as the page is up. */
+  useEffect(() => {
+    if (still || !page) return
+    const run = animate(spin, Math.PI * 2, { duration: 34, ease: 'linear', repeat: Infinity })
+    return () => run.stop()
+  }, [page, spin, still])
+
   const beat: Beat = DARK_BEATS.includes(step as Beat)
     ? (step as Beat)
     : step === 'detached'
@@ -226,7 +238,7 @@ export default function App() {
             {/* Over the card, where the design puts it. */}
             <Ribbon show={page} />
 
-            {page && <PageBelow at={stop} />}
+            {page && <PageBelow at={stop} spin={spin} canvas={HANDOVER} />}
           </motion.div>
 
           {/*
