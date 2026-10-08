@@ -1,7 +1,7 @@
 import { motion, type MotionValue } from 'framer-motion'
 import { EXPLORE, LINKS, type Offer, OFFERS } from '../content'
 import { CardOrb } from '../features/map/CardOrb'
-import { CloudShader } from '../components/ui/cloud-shader'
+import { DriftingCloud } from '../components/ui/drifting-cloud'
 
 const A = '/assets'
 const EASE = [0.22, 0.8, 0.3, 1] as const
@@ -188,14 +188,7 @@ export function OfferCard({
         rather than sitting behind it: two layers of the same weather, one of
         them moving, reads as a print with a fault on it.
       */}
-      {art &&
-        (offer.sky ? (
-          <CloudShader className="absolute inset-0 h-full w-full" weight={0.42}>
-            <Art offer={offer} />
-          </CloudShader>
-        ) : (
-          <Art offer={offer} />
-        ))}
+      {art && (offer.sky ? <DriftingCloud className="absolute inset-0" /> : <Art offer={offer} />)}
 
       <img
         src={`${A}/${offer.icon}`}
