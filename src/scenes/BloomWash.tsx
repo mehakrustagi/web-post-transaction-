@@ -35,14 +35,37 @@ const RISE_MS = 900
 const COOK = 0.82
 
 /** How its leading edge dissolves into the card in front of it. */
-const FEATHER =
-  'linear-gradient(to bottom, transparent 0px, rgba(0,0,0,0.10) 90px, rgba(0,0,0,0.34) 190px, rgba(0,0,0,0.72) 290px, black 380px, black 100%)'
-/** The launch. */
-const FIRE_MS = 780
-const FIRE_Y = 740
-/** And how much further it travels on its way out, past the launch. */
-const CLEAR_MS = 520
-const CLEAR_Y = 420
+const LEAD =
+  'transparent 0px, rgba(0,0,0,0.10) 90px, rgba(0,0,0,0.34) 190px, rgba(0,0,0,0.72) 290px, black 380px'
+const FEATHER = `linear-gradient(to bottom, ${LEAD}, black 100%)`
+/**
+ * And how its trailing edge dissolves into the page behind it.
+ *
+ * Only once it is going. While the colour is pooled at the foot of the card
+ * that edge is off the bottom of the screen and softening it there would just
+ * fade the pool out short of the edge, which is the hole this mask was written
+ * to avoid in the first place.
+ */
+const FEATHER_OUT = `linear-gradient(to bottom, ${LEAD}, black calc(100% - 420px), rgba(0,0,0,0.5) calc(100% - 210px), transparent 100%)`
+/**
+ * The launch, as one move.
+ *
+ * It used to go in two: up to 740 on one ease, then retargeted to 1160 on
+ * another. Framer restarts the tween when the target changes, so the join was
+ * a visible hitch halfway up — and the second leg faded the sheet out where it
+ * stood, which is an opaque surface dissolving over the top half of the screen
+ * rather than leaving. It travels once, far enough to be gone, and never
+ * changes its opacity at all.
+ */
+const FIRE_MS = 1250
+/**
+ * Past the top of the frame entirely.
+ *
+ * The group is 1240 tall and starts 360 down, so anything less than 1600 still
+ * has its bottom edge somewhere on screen when the move ends — which is what
+ * put a hard horizontal line across the page and then left it there.
+ */
+const FIRE_Y = 1720
 
 /**
  * The colour.
@@ -110,10 +133,10 @@ function BloomFields() {
   )
 }
 
-type Beat = 'idle' | 'fired' | 'cleared' | 'done'
+type Beat = 'idle' | 'fired' | 'done'
 
-/** How long the wash takes to finish leaving, after which there is nothing. */
-const DONE_MS = 820
+/** A breath past the travel, after which there is nothing left to draw. */
+const DONE_MS = FIRE_MS + 120
 
 /**
  * The colour wash, cooking at the foot of the page and then leaving up it.
@@ -147,16 +170,12 @@ export function BloomWash({
   }, [fire, beat])
 
   useEffect(() => {
-    if (beat !== 'fired' && beat !== 'cleared') return
-    const t = window.setTimeout(
-      () => setBeat(beat === 'fired' ? 'cleared' : 'done'),
-      beat === 'fired' ? CLEAR_MS : DONE_MS,
-    )
+    if (beat !== 'fired') return
+    const t = window.setTimeout(() => setBeat('done'), DONE_MS)
     return () => window.clearTimeout(t)
   }, [beat])
 
-  const fired = beat === 'fired' || beat === 'cleared'
-  const cleared = beat === 'cleared'
+  const fired = beat === 'fired'
   const active = cook || fired
 
   /*
@@ -220,49 +239,42 @@ export function BloomWash({
             /* Feathered along its top edge the whole way, because that edge is
                the one crossing the screen: it is what the card disappears
                behind, and a hard line there is a shutter, not a wash. */
-            maskImage: FEATHER,
-            WebkitMaskImage: FEATHER,
+            /* It stretches from its own base rather than about its middle, so
+               the smear runs ahead of it instead of pulling both edges apart. */
+            transformOrigin: '50% 100%',
+            maskImage: fired ? FEATHER_OUT : FEATHER,
+            WebkitMaskImage: fired ? FEATHER_OUT : FEATHER,
           }}
           initial={{ opacity: 0, y: 120 }}
           animate={
             !active
               ? { opacity: 0, y: 120 }
-              : cleared
-                ? /* It carries on out of frame and dissolves. It has to
-                     actually leave, not stop at the top and vanish in place. */
-                  { opacity: 0, y: -(FIRE_Y + CLEAR_Y), scaleY: 1.12, scaleX: 1.05 }
-                : fired
-                  ? {
-                      opacity: 1,
-                      y: -FIRE_Y,
-                      /* Stretches on the way up and recovers at the top — the
-                         smear of something moving faster than it can hold its
-                         shape. A rigid block travelling the same distance just
-                         reads as a slide. */
-                      scaleY: [1, 1.28, 1.04],
-                      scaleX: [1, 1.07, 1.03],
-                    }
-                  : /* Cooking: up at the foot of the page, and no more of
-                       itself than that needs. */
-                    { opacity: COOK, y: 0, scaleY: 1, scaleX: 1 }
-          }
-          transition={
-            cleared
-              ? {
-                  y: { duration: 0.72, ease: [0.4, 0, 0.7, 1] },
-                  opacity: { duration: 0.6, ease: 'easeIn' },
-                  scaleY: { duration: 0.72, ease: 'easeOut' },
-                  scaleX: { duration: 0.72, ease: 'easeOut' },
-                }
               : fired
                 ? {
-                    /* Fired, not lifted: near-zero initial slope and then a
-                       hard pull away. An ease-out reads as released. */
-                    y: { duration: FIRE_MS / 1000, ease: [0.72, 0, 0.24, 1] },
-                    scaleY: { duration: FIRE_MS / 1000, ease: 'easeOut' },
-                    scaleX: { duration: FIRE_MS / 1000, ease: 'easeOut' },
+                    /* No fade, ever. It leaves by leaving. */
+                    opacity: 1,
+                    y: -FIRE_Y,
+                    /* Stretches on the way up and recovers — the smear of
+                       something moving faster than it can hold its shape. A
+                       rigid block travelling the same distance reads as a
+                       slide. */
+                    scaleY: [1, 1.22, 1.05],
+                    scaleX: [1, 1.05, 1.02],
                   }
-                : { duration: RISE_MS / 1000, ease: [0.33, 0, 0.2, 1] }
+                : /* Cooking: up at the foot of the page, and no more of
+                     itself than that needs. */
+                  { opacity: COOK, y: 0, scaleY: 1, scaleX: 1 }
+          }
+          transition={
+            fired
+              ? {
+                  /* Fired, not lifted: near-zero initial slope and then a hard
+                     pull away that carries all the way off. */
+                  y: { duration: FIRE_MS / 1000, ease: [0.62, 0, 0.26, 1] },
+                  scaleY: { duration: FIRE_MS / 1000, ease: 'easeOut' },
+                  scaleX: { duration: FIRE_MS / 1000, ease: 'easeOut' },
+                }
+              : { duration: RISE_MS / 1000, ease: [0.33, 0, 0.2, 1] }
           }
         >
           {/*
