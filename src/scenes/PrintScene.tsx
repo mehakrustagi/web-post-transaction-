@@ -76,6 +76,7 @@ export function PrintScene({
   onRest,
   hero = true,
   handOver = false,
+  fill = true,
 }: {
   /*
    * The card's furniture goes before its background does, and before the slip
@@ -95,6 +96,15 @@ export function PrintScene({
   hero?: boolean
   /** Passed through: another scene has taken the slip on. */
   handOver?: boolean
+  /**
+   * Whether this scene paints the card it sits on.
+   *
+   * It normally does. `/transaction` takes it over, because the colour wash
+   * has to go *between* the card and the slip — on the card, under the paper —
+   * and a scene that paints its own background is one layer, with no between
+   * to put anything in.
+   */
+  fill?: boolean
 }) {
   return (
     <div className="absolute inset-0 overflow-hidden rounded-[40px]">
@@ -103,15 +113,17 @@ export function PrintScene({
         starts travelling — that is the background changing — while the slip
         itself carries on over whatever comes up underneath.
       */}
-      <motion.div
-        className="absolute inset-0"
-        style={{
-          backgroundImage:
-            'linear-gradient(101.874deg, #dedede 15.131%, #ffffff 57.588%, #cdcdcd 100.56%)',
-        }}
-        animate={{ opacity: detached ? 0 : 1 }}
-        transition={{ duration: 0.7, ease: 'easeInOut' }}
-      />
+      {fill && (
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(101.874deg, #dedede 15.131%, #ffffff 57.588%, #cdcdcd 100.56%)',
+          }}
+          animate={{ opacity: detached ? 0 : 1 }}
+          transition={{ duration: 0.7, ease: 'easeInOut' }}
+        />
+      )}
       <motion.div
         className="absolute inset-0"
         animate={{ opacity: hero ? 1 : 0, y: hero ? 0 : -12 }}

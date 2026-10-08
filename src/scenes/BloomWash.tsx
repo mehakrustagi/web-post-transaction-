@@ -22,10 +22,17 @@ const FRAME_H = 915
 const SX = FRAME_W / SRC_W
 const SY = FRAME_H / SRC_H
 
-/** How long the wash takes to pool at the foot of the card. */
-const RISE_MS = 620
-/** How long it sits there before it goes. */
-const HOLD_MS = 1500
+/** How long the colour takes to come up and settle at the foot of the page. */
+const RISE_MS = 900
+/**
+ * How much of itself it shows while it is only cooking.
+ *
+ * It is under a printer that is still working at this point, and the one thing
+ * it must not do is ask to be looked at — it is a warmth at the bottom of the
+ * page that you notice having been there, not an event. Full weight is for the
+ * launch, which is when it does have something to say.
+ */
+const COOK = 0.82
 /** The launch. */
 const FIRE_MS = 780
 const FIRE_Y = 740
@@ -33,24 +40,34 @@ const FIRE_Y = 740
 const CLEAR_MS = 520
 const CLEAR_Y = 420
 
-const IN_EASE = [0.22, 1, 0.36, 1] as const
-
 /**
- * The colour, straight from the onboarding build.
+ * The colour.
  *
- * All four brand hues (#5057EA indigo, #D946EF magenta, #EF4444 red, #EDD758
- * yellow), laid left to right so neighbours are adjacent on the wheel —
- * ordering matters because the fields overlap and multiply, and adjacent hues
- * compound into colours that still belong to the set where indigo next to
- * yellow would mix toward mud. They sit well lighter than the target colour
- * on purpose: multiply darkens whatever it lands on, and the card is
- * near-white, so these are those hues lifted toward pastel.
+ * The onboarding build's wash is the brand's four hues; this one is the eSIM
+ * card's own gradient — #118388 → #0F7080 → #4270D3 → #0E528D — because the
+ * card is what the wash hands you, and arriving in the colours of the thing
+ * you are about to be shown is the difference between a transition and an
+ * interstitial. Laid left to right in the gradient's own order, which is
+ * already a smooth walk from teal to deep blue, so the fields compound into
+ * colours that still belong to the set wherever they overlap.
+ *
+ * Lifted well toward white, though, and that is not a softening of the brief:
+ * these fields multiply, multiply darkens whatever it lands on, and two
+ * overlapping fields darken it twice. Mixed at their true brightness on a
+ * near-white card they come out as ink. These are those four colours taken
+ * 42% of the way to white — enough that they read as light diffusing through
+ * the surface rather than as paint laid over it, and no further, because past
+ * that the gradient stops being teal and blue and starts being grey.
  */
 const FIELDS = [
-  { color: 'rgba(188,168,238,0.95)', fade: 'rgba(188,168,238,0.34)', x: -250, y: 250, w: 640, h: 360, blur: 64, drift: 250, lift: 70, swell: 1.14, dur: 5.6 },
-  { color: 'rgba(240,182,250,0.95)', fade: 'rgba(240,182,250,0.34)', x: -60, y: 300, w: 620, h: 340, blur: 70, drift: -215, lift: 84, swell: 1.17, dur: 7.1 },
-  { color: 'rgba(250,182,178,0.95)', fade: 'rgba(250,182,178,0.34)', x: 110, y: 235, w: 630, h: 350, blur: 66, drift: 230, lift: 62, swell: 1.12, dur: 4.8 },
-  { color: 'rgba(250,238,186,0.95)', fade: 'rgba(250,238,186,0.34)', x: 250, y: 285, w: 620, h: 330, blur: 68, drift: -240, lift: 76, swell: 1.15, dur: 6.3 },
+  // #118388 — teal
+  { color: 'rgba(117,183,186,0.95)', fade: 'rgba(117,183,186,0.34)', x: -250, y: 250, w: 640, h: 360, blur: 64, drift: 250, lift: 70, swell: 1.14, dur: 5.6 },
+  // #0F7080 — deep teal, at the 80% the stop itself carries
+  { color: 'rgba(116,172,181,0.76)', fade: 'rgba(116,172,181,0.27)', x: -60, y: 300, w: 620, h: 340, blur: 70, drift: -215, lift: 84, swell: 1.17, dur: 7.1 },
+  // #4270D3 — blue
+  { color: 'rgba(145,172,230,0.95)', fade: 'rgba(145,172,230,0.34)', x: 110, y: 235, w: 630, h: 350, blur: 66, drift: 230, lift: 62, swell: 1.12, dur: 4.8 },
+  // #0E528D — deep blue
+  { color: 'rgba(115,155,189,0.95)', fade: 'rgba(115,155,189,0.34)', x: 250, y: 285, w: 620, h: 330, blur: 68, drift: -240, lift: 76, swell: 1.15, dur: 6.3 },
 ] as const
 
 /* Long sweeps across the full width rather than a gentle wobble in place: the
@@ -89,44 +106,54 @@ function BloomFields() {
   )
 }
 
-type Beat = 'rise' | 'settled' | 'fired' | 'cleared' | 'done'
+type Beat = 'idle' | 'fired' | 'cleared' | 'done'
 
 /** How long the wash takes to finish leaving, after which there is nothing. */
 const DONE_MS = 820
 
-/** Everything the wash has covered is gone by the time it reports this. */
-export function BloomWash({ active, onFired }: { active: boolean; onFired?: () => void }) {
-  const [beat, setBeat] = useState<Beat>('rise')
+/**
+ * The colour wash, cooking at the foot of the page and then leaving up it.
+ *
+ * It keeps no clock of its own beyond its own exit. It used to run rise → hold
+ * → fire on internal timers while the page it was covering ran a second set
+ * anchored to the slip, and two clocks for one sequence is one clock too many:
+ * whenever the wash took longer to pool than the page's timer allowed, the
+ * page simply arrived first and the colour was left cooking over the thing it
+ * was supposed to be covering. Now the launch is told to it.
+ */
+export function BloomWash({
+  cook,
+  fire,
+  onFired,
+}: {
+  /** Warm up at the foot of the page. */
+  cook: boolean
+  /** And go. */
+  fire: boolean
+  onFired?: () => void
+}) {
+  const [beat, setBeat] = useState<Beat>('idle')
   const still = useReducedMotion()
 
   useEffect(() => {
-    if (!active) return
-    const next: Record<Beat, [Beat, number] | null> = {
-      rise: ['settled', RISE_MS],
-      settled: ['fired', HOLD_MS],
-      fired: ['cleared', CLEAR_MS],
-      cleared: ['done', DONE_MS],
-      done: null,
-    }
-    const step = next[beat]
-    if (!step) return
-    const t = window.setTimeout(() => setBeat(step[0]), step[1])
-    return () => window.clearTimeout(t)
-  }, [active, beat])
-
-  /*
-   * The page underneath is uncovered at the launch, not at the end of it. The
-   * wash is travelling and stretched at that moment and the card is behind the
-   * thickest part of it, so the swap happens under cover — waiting for the
-   * wash to leave would mean swapping on an empty screen.
-   */
-  useEffect(() => {
-    if (beat === 'fired') onFired?.()
+    if (!fire || beat !== 'idle') return
+    setBeat('fired')
+    onFired?.()
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fire, beat])
+
+  useEffect(() => {
+    if (beat !== 'fired' && beat !== 'cleared') return
+    const t = window.setTimeout(
+      () => setBeat(beat === 'fired' ? 'cleared' : 'done'),
+      beat === 'fired' ? CLEAR_MS : DONE_MS,
+    )
+    return () => window.clearTimeout(t)
   }, [beat])
 
   const fired = beat === 'fired' || beat === 'cleared'
   const cleared = beat === 'cleared'
+  const active = cook || fired
 
   /*
    * And then it is gone, rather than sitting at zero. The veil carries a
@@ -137,88 +164,28 @@ export function BloomWash({ active, onFired }: { active: boolean; onFired?: () =
   if (still || beat === 'done') return null
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[40px]" style={{ zIndex: 30 }}>
+    /*
+     * Multiplied onto the page rather than laid over it behind a frosted
+     * sheet. The veil this was ported with carried a 30px backdrop-filter,
+     * and that blur is what made the receipt illegible the moment the colour
+     * arrived — the wash is supposed to cook on the page, not fog it. On
+     * multiply, white areas leave the page exactly as it is and the coloured
+     * ones only darken it, so the page stays as sharp under the colour as it
+     * is beside it.
+     *
+     * And it sits under the slip rather than over it. The receipt is the one
+     * thing on this card that is not the page: colour running across it made
+     * it look tinted, which is a printed slip that has come out the wrong
+     * shade. The wash cooks on the card behind it.
+     */
+    <div
+      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[40px]"
+      style={{ zIndex: 1, mixBlendMode: 'multiply' }}
+    >
       <div
         className="absolute left-0 top-0"
         style={{ width: SRC_W, height: SRC_H, transform: `scale(${SX}, ${SY})`, transformOrigin: '0 0' }}
       >
-        {/*
-          The frosted veil. It carries its weight in blur rather than in flat
-          white, so the slip and the machine still read as shapes underneath
-          it rather than being painted out — and it eases off toward the foot,
-          because every point of opacity here is colour you cannot see and the
-          gradient lives down there.
-        */}
-        <motion.div
-          className="absolute"
-          style={{
-            left: 0,
-            top: -1.79,
-            width: 440.908,
-            height: 968,
-            background:
-              'linear-gradient(180deg, rgba(255,255,255,0.76) 0%, rgba(255,255,255,0.70) 38%, rgba(255,255,255,0.40) 72%, rgba(255,255,255,0.22) 100%)',
-            backdropFilter: 'blur(30px) saturate(105%)',
-            WebkitBackdropFilter: 'blur(30px) saturate(105%)',
-          }}
-          initial={{ opacity: 0 }}
-          /* Breathes rather than sitting flat, and only just: a veil that
-             pulses hard makes what is under it flicker in and out of
-             legibility, which reads as a rendering fault. */
-          animate={
-            !active
-              ? { opacity: 0 }
-              : cleared
-                ? /* Goes with the colour. It is the frost the wash travelled
-                     under, so it has no business outliving it. */
-                  { opacity: 0 }
-                : fired
-                  ? { opacity: 1 }
-                  : { opacity: [1, 0.88, 1] }
-          }
-          transition={
-            cleared
-              ? { duration: 0.5, ease: 'easeOut' }
-              : fired
-              ? { duration: FIRE_MS / 1000, ease: 'easeOut' }
-              : active
-                ? { opacity: { duration: 3.2, repeat: Infinity, ease: 'easeInOut' } }
-                : { duration: 0.55, ease: IN_EASE }
-          }
-        />
-
-        {/* The swell on top of it, which is what carries most of the pulse:
-            brightening one area reads as the frost thickening and thinning,
-            where pulsing the whole veil just dims the screen. Its period is
-            off the veil's so the two never peak together. */}
-        <motion.div
-          className="absolute"
-          style={{
-            left: 0,
-            top: -1.79,
-            width: 440.908,
-            height: 968,
-            background:
-              'radial-gradient(58% 38% at 50% 34%, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.12) 52%, rgba(255,255,255,0) 100%)',
-          }}
-          initial={{ opacity: 0, scale: 0.94 }}
-          animate={
-            active
-              ? fired
-                ? { opacity: 0, scale: 1.04 }
-                : { opacity: [0.4, 0.8, 0.4], scale: [0.97, 1.04, 0.97] }
-              : { opacity: 0, scale: 0.94 }
-          }
-          transition={
-            active
-              ? {
-                  opacity: { duration: 2.4, repeat: Infinity, ease: 'easeInOut' },
-                  scale: { duration: 3.7, repeat: Infinity, ease: 'easeInOut' },
-                }
-              : { duration: 0.55, ease: IN_EASE }
-          }
-        />
-
         {/* The bloom itself. Three soft colour fields drifting behind a bright
             luminous bar, all heavily blurred — much larger than the area they
             light and sitting partly below the bottom edge, so you see the glow
@@ -267,7 +234,9 @@ export function BloomWash({ active, onFired }: { active: boolean; onFired?: () =
                       scaleY: [1, 1.28, 1.04],
                       scaleX: [1, 1.07, 1.03],
                     }
-                  : { opacity: 1, y: 0, scaleY: 1, scaleX: 1 }
+                  : /* Cooking: up at the foot of the page, and no more of
+                       itself than that needs. */
+                    { opacity: COOK, y: 0, scaleY: 1, scaleX: 1 }
           }
           transition={
             cleared
@@ -285,7 +254,7 @@ export function BloomWash({ active, onFired }: { active: boolean; onFired?: () =
                     scaleY: { duration: FIRE_MS / 1000, ease: 'easeOut' },
                     scaleX: { duration: FIRE_MS / 1000, ease: 'easeOut' },
                   }
-                : { duration: RISE_MS / 1000, ease: [0.4, 0, 0.2, 1] }
+                : { duration: RISE_MS / 1000, ease: [0.33, 0, 0.2, 1] }
           }
         >
           <BloomFields />
@@ -303,7 +272,7 @@ export function BloomWash({ active, onFired }: { active: boolean; onFired?: () =
               height: 320,
               borderRadius: '50%',
               background:
-                'radial-gradient(closest-side, rgba(200,182,240,0.86) 0%, rgba(238,186,246,0.58) 38%, rgba(250,188,182,0.4) 70%, rgba(250,236,186,0.24) 100%)',
+                'radial-gradient(closest-side, rgba(124,187,190,0.86) 0%, rgba(120,176,184,0.58) 38%, rgba(149,176,232,0.4) 70%, rgba(119,158,192,0.24) 100%)',
               filter: 'blur(72px)',
               mixBlendMode: 'multiply',
             }}
@@ -327,7 +296,7 @@ export function BloomWash({ active, onFired }: { active: boolean; onFired?: () =
               height: 300,
               borderRadius: '50%',
               background:
-                'radial-gradient(closest-side, rgba(255,246,232,0.62) 0%, rgba(255,242,224,0.4) 30%, rgba(255,238,214,0.2) 62%, rgba(255,255,255,0) 100%)',
+                'radial-gradient(closest-side, rgba(236,250,255,0.62) 0%, rgba(228,246,255,0.4) 30%, rgba(222,242,255,0.2) 62%, rgba(255,255,255,0) 100%)',
               filter: 'blur(96px)',
               mixBlendMode: 'plus-lighter',
             }}

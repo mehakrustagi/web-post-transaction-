@@ -24,23 +24,28 @@ const FLOOR = -(MAP_PAGE_H - FRAME_H)
  * where the wash simply covers the card and hands back a different one. It is
  * the move a payment makes, and this is what happens after a payment.
  */
-const BEATS = [
-  { at: 0.41, step: 'clearing' },
-  /* The machine is most of the way gone before the colour starts, so the wash
-     is washing over a resting slip rather than over a printer mid-exit. */
-  { at: 0.95, step: 'wash' },
-  /*
-   * Everything from here is pinned to the wash's own clock, which runs
-   * 620ms up, 1500ms held, then the launch. `card` is not in this list: the
-   * wash calls it at the moment it fires, so the page is uncovered under the
-   * thickest part of it rather than on a timer that has to be kept in step.
-   */
-  { at: 3.9, step: 'landed' },
-  { at: 5.3, step: 'explore' },
-  { at: 7.9, step: 'more' },
+/**
+ * What happens once the slip is down, in seconds from the moment it lands.
+ *
+ * One clock, and it starts at the drop. The colour has been cooking at the
+ * foot of the page the whole time the printer was working, so there is nothing
+ * to wait for: the slip lands, the wash goes up and takes the receipt with it,
+ * and only once the frame is actually empty does the last page come up into
+ * it. Nothing here shares the frame with anything else — the gaps are the
+ * point, not slack to be tightened out.
+ */
+const AFTER = [
+  /* The launch, and the receipt leaving on it. */
+  { at: 0, step: 'fire' },
+  /* A clear beat later than the receipt's 0.78s exit, so the page is coming
+     up into an empty frame rather than past a slip still on its way out. */
+  { at: 0.9, step: 'card' },
+  { at: 1.8, step: 'landed' },
+  { at: 3.2, step: 'explore' },
+  { at: 5.8, step: 'more' },
 ] as const
 
-type Step = (typeof BEATS)[number]['step'] | 'printing' | 'card'
+type Step = (typeof AFTER)[number]['step'] | 'printing'
 
 const clamp = (v: number) => Math.min(0, Math.max(FLOOR, v))
 const stopAt = (y: number): MapStop => (y > -300 ? 'page' : y > -740 ? 'explore' : 'more')
@@ -97,19 +102,21 @@ export default function TransactionApp() {
   /* The rig calls this when the slip has stopped swinging. */
   const onRest = useCallback(() => {
     timers.current.forEach(clearTimeout)
-    timers.current = BEATS.map((b) => window.setTimeout(() => setStep(b.step), b.at * 1000))
+    timers.current = AFTER.map((b) => window.setTimeout(() => setStep(b.step), b.at * 1000))
   }, [])
 
-  const washing = step === 'wash' || step === 'card' || step === 'landed' || step in MAP_SCROLL
   const landed = step === 'landed' || step in MAP_SCROLL
   const page = step === 'card' || landed
+  /* It warms up under the printer and is already there when the slip lands. */
+  const cooking = !page
+  const firing = step !== 'printing'
   /*
    * The print scene stays mounted right up to the page. It owns the flag, the
    * country line and the headline — and their arrival — so keeping it is both
    * less code than a second copy of them and the only way they keep the
    * entrance they were written with.
    */
-  const showPrint = !page
+  const showPrint = step === 'printing'
 
   useEffect(() => {
     if (still || !page) return
@@ -120,10 +127,6 @@ export default function TransactionApp() {
       warming.stop()
     }
   }, [page, spin, tint, still])
-
-  /* Called the instant the wash launches, which is the only moment the card is
-     covered thickly enough for the page to appear without being seen to. */
-  const uncover = useCallback(() => setStep((s) => (s === 'wash' ? 'card' : s)), [])
 
   return (
     <SparklesProvider>
@@ -141,11 +144,24 @@ export default function TransactionApp() {
             className="absolute left-0 top-0 origin-top-left overflow-hidden rounded-[40px]"
             style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${scale})` }}
           >
+            {/* The card itself, which this route owns so the colour can go
+                between it and the paper standing on it. */}
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage:
+                  'linear-gradient(101.874deg, #dedede 15.131%, #ffffff 57.588%, #cdcdcd 100.56%)',
+              }}
+            />
+
+            {/* On the card, under the paper. */}
+            <BloomWash cook={cooking} fire={firing} key={`wash-${run}`} />
+
             <AnimatePresence>
               {showPrint && (
                 <motion.div
                   key={`print-${run}`}
-                  className="absolute inset-0"
+                  className="absolute inset-0 z-[2]"
                   initial={{ opacity: 1 }}
                   /*
                    * Swept up, not faded out. The wash launches at this exact
@@ -165,6 +181,7 @@ export default function TransactionApp() {
                     leaving={step !== 'printing'}
                     detached={false}
                     handOver={false}
+                    fill={false}
                     onRest={onRest}
                   />
                 </motion.div>
@@ -172,13 +189,13 @@ export default function TransactionApp() {
             </AnimatePresence>
 
             {/*
-              The page, which the wash does not so much uncover as drag into
-              frame behind itself. It comes up from below on the same beat the
-              receipt goes up and out, so the two of them read as one movement
-              through the card rather than as a swap that happened under cover.
+              The last page, pulled up into a frame the wash has just emptied.
+              It waits for the receipt to be gone rather than crossing it on
+              the way in — the two travelling at once is the clutter, not the
+              speed.
             */}
             <motion.div
-              className="absolute inset-0"
+              className="absolute inset-0 z-[2]"
               initial={false}
               animate={{ y: page ? 0 : 150, opacity: page ? 1 : 0 }}
               transition={{
@@ -201,9 +218,6 @@ export default function TransactionApp() {
               <Ribbon show={page} label={MAP_OFFER.ribbon} />
             </motion.div>
             </motion.div>
-
-            {/* Over everything, because covering everything is its whole job. */}
-            <BloomWash active={washing} onFired={uncover} key={`wash-${run}`} />
 
             <Header dark={false} onPage={page} />
           </div>
