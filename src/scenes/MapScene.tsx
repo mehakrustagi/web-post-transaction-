@@ -204,7 +204,7 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
               <path d={flap.d} fill="url(#turnedFold)" />
             </svg>
             <div
-              className="paper relative"
+              className="paper still relative"
               style={{
                 width: PAPER_W,
                 height: PAPER_H,

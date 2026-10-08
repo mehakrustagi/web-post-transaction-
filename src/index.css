@@ -77,11 +77,20 @@ body {
   50%      { transform: translateY(32px) rotate(.3deg); }
 }
 
-/* A barely-there tint drifting across the stock. */
+/*
+ * A barely-there tint drifting across the stock. It only reads as paper while
+ * the sheet is moving through the slot; on a sheet that has come to rest the
+ * gradient sweeps across it and looks like the paper is changing colour, so
+ * `.paper.still` holds it where it is.
+ */
 .paper {
   background: linear-gradient(115deg, #FFFFFF 0%, #F8F7FF 22%, #FFFFFF 42%, #F5FBF8 62%, #FFFFFF 78%, #FFF9F4 100%);
   background-size: 320% 320%;
   animation: paperTint 22s ease-in-out infinite alternate;
+}
+.paper.still {
+  animation: none;
+  background-position: 30% 50%;
 }
 @keyframes paperTint {
   0%   { background-position: 0% 30%; }

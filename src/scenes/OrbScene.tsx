@@ -110,8 +110,9 @@ export function OrbScene({ beat }: { beat: OrbBeat }) {
         }}
         initial={{ opacity: 1 }}
         animate={{ opacity: crumbling ? 0 : 1 }}
-        /* Paced to the wave of dots coming off it rather than to a clock of
-           its own, so the sheet is thinning exactly where they have left. */
+        /* Paced to the wave of dots coming off it, with no hold in front of
+           it: the sheet starts thinning the moment the first dots lift, so the
+           paper is going exactly as the dust arrives rather than after it. */
         transition={{ duration: GATHER_S * 0.62, ease: [0.4, 0, 0.75, 0.6] }}
       >
         <svg
@@ -130,10 +131,24 @@ export function OrbScene({ beat }: { beat: OrbBeat }) {
           <path d={flap.d} fill="url(#orbFold)" />
         </svg>
         <div
-          className="paper relative"
+          className="paper still relative"
           style={{ width: PAPER_W, height: PAPER_H, clipPath: paperClip(PAPER_W, PAPER_W, true) }}
         >
-          <PaperFace />
+          {/*
+            The ink goes first, and quickly. What comes apart into dots has to
+            be paper — a sheet of type dissolving into an even scatter reads as
+            a cross-fade between two unrelated things, because the dots are not
+            where the words were. By the time the sheet itself starts to thin
+            it is blank, and the two halves of the effect agree with each other.
+          */}
+          <motion.div
+            className="absolute inset-0"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: crumbling ? 0 : 1 }}
+            transition={{ duration: 0.3, ease: 'easeIn' }}
+          >
+            <PaperFace />
+          </motion.div>
         </div>
       </motion.div>
 
