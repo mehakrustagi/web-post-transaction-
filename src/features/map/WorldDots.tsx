@@ -20,6 +20,11 @@ function mix(a: string, b: string, t: number) {
   const ch = (x: number, y: number) => Math.round(x + (y - x) * t)
   return `rgb(${ch(r1, r2)},${ch(g1, g2)},${ch(b1, b2)})`
 }
+/** The same colour at a given weight, for layering light over the dots. */
+function rgba(a: string, alpha: number) {
+  const [r, g, b] = rgb(a)
+  return `rgba(${r},${g},${b},${alpha.toFixed(3)})`
+}
 /** Golden angle, for spacing the sphere's points evenly. */
 const PHI = Math.PI * (3 - Math.sqrt(5))
 /** How much of the morph is spent handing out start times rather than moving. */
@@ -288,6 +293,41 @@ export function WorldDots({
       ctx.globalCompositeOperation = 'source-in'
       ctx.fillStyle = ink
       ctx.fillRect(0, 0, width, height)
+
+      /*
+       * The core.
+       *
+       * The colour used to change evenly everywhere at once, which is a swatch
+       * being swapped rather than anything happening. This is where it comes
+       * from: a nucleus at the middle of the sphere that holds the new colour
+       * at its deepest, widens out of itself as the change runs, and is gone
+       * by the time it has finished — so the warmth reads as having spread out
+       * of the orb rather than as having been applied to it.
+       *
+       * Deeper than the orb, not brighter. The page behind this is near-white
+       * and the dots are paler still, so light added at the middle is light
+       * nobody can see; what reads as a core on a pale sphere is saturation.
+       *
+       * `sin` of the progress, so it is nothing at either end and fullest
+       * exactly halfway through. It only ever exists during the change.
+       */
+      const core = Math.sin(Math.max(0, Math.min(1, warm)) * Math.PI)
+      if (core > 0.01 && orbToWarm) {
+        const cx = width / 2
+        const cy = height / 2
+        /* It starts tight and opens out, which is the spreading. */
+        const r = width * (0.07 + 0.4 * warm)
+        const deep = mix(orbToWarm, '#06485c', 0.62)
+        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+        glow.addColorStop(0, rgba(deep, core * 0.95))
+        glow.addColorStop(0.42, rgba(mix(deep, orbToWarm, 0.5), core * 0.58))
+        glow.addColorStop(1, rgba(orbToWarm, 0))
+        /* Over the dots and nowhere else: `source-atop` keeps it inside what
+           has already been drawn, so the sphere glows rather than the canvas. */
+        ctx.globalCompositeOperation = 'source-atop'
+        ctx.fillStyle = glow
+        ctx.fillRect(0, 0, width, height)
+      }
       ctx.globalCompositeOperation = 'source-over'
 
       frame = requestAnimationFrame(draw)
