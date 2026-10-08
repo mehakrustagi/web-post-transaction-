@@ -10,8 +10,15 @@ import { HANDOVER } from './scenes/OrbScene'
 
 /** The design is a run of fixed frames; everything inside is in their coordinates. */
 /** The last frame is not a frame but a page, and it runs past the viewport. */
-/** How far up the page can travel before its foot is on screen. */
-const FLOOR = -620
+const PAGE_H = 2741
+/**
+ * How far up the page can travel before its foot is on screen.
+ *
+ * The foot of the page, not the tour's last stop. Only the tour stops at the
+ * eSIM — clamping this there as well meant the page below it existed and could
+ * not be reached, which is a different thing from not being taken there.
+ */
+const FLOOR = -(PAGE_H - FRAME_H)
 
 /**
  * The sequence after the printer has finished, in seconds from the moment the
