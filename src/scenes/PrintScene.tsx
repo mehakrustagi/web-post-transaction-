@@ -26,8 +26,14 @@ export const AT = {
   namer: 1.25,
   headline: 1.45,
   lift: 2.9,
-  machine: 3.45,
-  feed: 4.1,
+  machine: 3.3,
+  /*
+   * Only a breath after the machine, not a pause. Left at two thirds of a
+   * second this was long enough to screenshot: a printer sitting there with
+   * an empty mouth, which reads as the thing having stalled rather than as
+   * the beat before it starts.
+   */
+  feed: 3.6,
 }
 
 /** How far down the group starts: enough to sit centred on the frame. */
@@ -165,7 +171,8 @@ export function PrintScene({
         style={{ top: MACHINE_Y, height: MACHINE_H }}
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: AT.machine, duration: 1.2, ease: [0.22, 0.8, 0.3, 1] }}
+        /* Still on its way up when the paper starts, as in the source. */
+        transition={{ delay: AT.machine, duration: 0.9, ease: [0.22, 0.8, 0.3, 1] }}
       >
         <PrintRig
           delay={AT.feed}
