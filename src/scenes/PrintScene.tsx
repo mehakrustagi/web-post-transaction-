@@ -3,6 +3,7 @@ import { INTRO } from '../content'
 import { PAPER_H } from '../components/Receipt'
 import { EXIT_Y, MACHINE_H, PrintRig, REST_Y } from '../components/PrintRig'
 import { EMERGES } from './GiftScene'
+import { SpeedBurst } from '../components/SpeedBurst'
 
 const A = '/assets'
 
@@ -128,6 +129,13 @@ export function PrintScene({
           animate={{ y: 0 }}
           transition={{ delay: AT.lift, duration: LIFT_S, ease: EASE_UP }}
         >
+        {/*
+          Inside the group, so it goes off exactly where the line is rather
+          than where the line ends up — the three of them are still sitting in
+          the middle of the card when this happens.
+        */}
+        <SpeedBurst at={AT.headline} cx={642} cy={274} />
+
         <motion.div
           className="absolute"
           style={{ left: 613, top: 138, width: 54, height: 52 }}

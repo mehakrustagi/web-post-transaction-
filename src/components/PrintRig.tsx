@@ -178,20 +178,38 @@ export function flapPath(W: number) {
     const [tx, ty] = teeth[i]
     const [px, py] = reflect(tx, ty)
     const s = (tx - ax) / (W - ax)
-    const lift = Math.sin(s * Math.PI) * slack
+    /*
+     * The curl. The free edge does not fall straight back from the crease — it
+     * rolls, so it stands furthest off the face in the middle of its run and
+     * comes back to the sheet at both ends, where the fold is holding it.
+     */
+    const lift = Math.sin(s * Math.PI) * slack * 2.6
     edge.push([px + mx * lift, py + my * lift])
   }
 
   const [rx, ry] = edge[0]
   const cx = (ax + bx) / 2 + mx * bulge
   const cy = (ay + by) / 2 + my * bulge
+  /*
+   * And the teeth are rounded off rather than drawn as points. A torn edge
+   * that has curled is a torn edge seen along its own roll: the cut is still
+   * there and still continues the sheet's, but a saw drawn at full depth on a
+   * rolling edge reads as serration printed on it. Every vertex becomes the
+   * control point of a curve through the midpoints either side of it, which
+   * is the whole of the smoothing.
+   */
+  const mid = (i: number, j: number) =>
+    `${((edge[i][0] + edge[j][0]) / 2).toFixed(2)} ${((edge[i][1] + edge[j][1]) / 2).toFixed(2)}`
+  let lip = `L${mid(0, 1)}`
+  for (let i = 1; i < edge.length - 1; i++) {
+    lip += `Q${edge[i][0].toFixed(2)} ${edge[i][1].toFixed(2)} ${mid(i, i + 1)}`
+  }
+  lip += `L${edge[edge.length - 1][0].toFixed(2)} ${edge[edge.length - 1][1].toFixed(2)}`
+
   const d =
     `M${ax} ${ay} Q${cx} ${cy} ${bx} ${by}` +
     ` Q${(bx + rx) / 2 + mx * slack} ${(by + ry) / 2 + my * slack} ${rx} ${ry}` +
-    edge
-      .slice(1)
-      .map(([x, y]) => `L${x.toFixed(2)} ${y.toFixed(2)}`)
-      .join('') +
+    lip +
     'Z'
 
   return {
@@ -726,12 +744,15 @@ export function PrintRig({
             >
               <defs>
                 <linearGradient id="flapFold" gradientUnits="userSpaceOnUse" {...f.grad}>
-                  {/* Darkest in the crease, where the fold shades itself, and
-                      brightest at the free edge that is standing away from the
-                      face and catching the light. */}
-                  <stop offset="0" stopColor="#DCDCE3" />
-                  <stop offset=".45" stopColor="#F4F4F7" />
-                  <stop offset="1" stopColor="#FFFFFF" />
+                  {/* Shaded as a roll, not as a flat triangle: the sheet
+                      turns under at the crease and is in its own shadow there,
+                      brightest over the crown of the curl, and darkening again
+                      at the lip where the edge turns away from the light. */}
+                  <stop offset="0" stopColor="#D4D4DC" />
+                  <stop offset=".18" stopColor="#EDEDF2" />
+                  <stop offset=".62" stopColor="#FFFFFF" />
+                  <stop offset=".88" stopColor="#FBFBFD" />
+                  <stop offset="1" stopColor="#E6E6EE" />
                 </linearGradient>
               </defs>
               <path d={f.d} fill="url(#flapFold)" />
