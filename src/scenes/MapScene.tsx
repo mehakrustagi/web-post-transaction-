@@ -46,7 +46,7 @@ const MAP_CENTRE = { cx: 641, cy: BASE_Y - (CANVAS_H + MAP_H) / 2 + CANVAS_H / 2
 const CENTRE_S = 0.8
 
 /** Where the orb ends up once the dots have gathered (438:17412). */
-const ORB_REST = { cx: 641, cy: 620, d: 293 }
+const ORB_REST = { cx: 641, cy: 620, d: 430 }
 /**
  * And where it finally sits: the slot the eSIM card keeps for its artwork
  * (438:16720), in the page's coordinates.

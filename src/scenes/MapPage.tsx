@@ -60,7 +60,12 @@ export function MapPage({
           {...rise(1, 'page')}
         >
           {/* No artwork: the orb is flying into that slot from outside. */}
-          <OfferCard offer={MAP_OFFER} art={false} slot={<CardOrb show={landed} spin={spin} />} />
+          {/* Mounted with the page, revealed when the orb arrives — see `CardOrb`. */}
+          <OfferCard
+            offer={MAP_OFFER}
+            art={false}
+            slot={show ? <CardOrb show={landed} spin={spin} /> : null}
+          />
         </motion.div>
 
         <Rule top={735} show={seen('explore') && show} />

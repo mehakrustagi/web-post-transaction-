@@ -24,12 +24,12 @@ const BEATS = [
   { at: 2.08, step: 'scan' },
   { at: 4.48, step: 'routes' },
   { at: 7.84, step: 'orb' },
-  { at: 9.7, step: 'card' },
+  { at: 11.3, step: 'card' },
   /* Once it has settled it stops being a thing flying over the page and
      becomes the card's artwork, drawn behind the card's own text. */
-  { at: 11.2, step: 'landed' },
-  { at: 12.4, step: 'explore' },
-  { at: 15.0, step: 'more' },
+  { at: 12.8, step: 'landed' },
+  { at: 14.0, step: 'explore' },
+  { at: 16.6, step: 'more' },
 ] as const
 
 type Step = (typeof BEATS)[number]['step'] | 'printing'
@@ -122,7 +122,13 @@ export default function MapApp() {
   useEffect(() => {
     if (still || !turning) return
     const run = animate(spin, Math.PI * 2, { duration: 34, ease: 'linear', repeat: Infinity })
-    const warming = animate(tint, 1, { duration: 1.5, ease: 'easeInOut' })
+    /*
+     * Held until the sphere has finished gathering. Started with it, the colour
+     * travelled while the dots were still arriving and the grey orb the
+     * gradient is drawn on was never once on screen — so there was nothing for
+     * the change to be a change from.
+     */
+    const warming = animate(tint, 1, { delay: 1.9, duration: 1.1, ease: 'easeInOut' })
     return () => {
       run.stop()
       warming.stop()

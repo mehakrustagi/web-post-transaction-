@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'framer-motion'
 import { Header } from './components/Header'
 import { PrintScene } from './scenes/PrintScene'
-import { LIFT, OrbScene, type OrbBeat } from './scenes/OrbScene'
+import { OrbScene, type OrbBeat } from './scenes/OrbScene'
 import { MAP_PAGE_H, MAP_SCROLL, MAP_STOPS, MapPage, type MapStop } from './scenes/MapPage'
 import { Ribbon } from './scenes/PageScene'
 import { SparklesProvider } from './components/ui/sparkles'
@@ -21,12 +21,12 @@ const FLOOR = -(MAP_PAGE_H - FRAME_H)
 const BEATS = [
   { at: 0.41, step: 'clearing' },
   { at: 0.98, step: 'crumble' },
-  { at: 3.85, step: 'card' },
+  { at: 4.5, step: 'card' },
   /* Once it has settled it stops being a thing flying over the page and
      becomes the card's artwork, drawn behind the card's own text. */
-  { at: 5.35, step: 'landed' },
-  { at: 6.65, step: 'explore' },
-  { at: 9.25, step: 'more' },
+  { at: 6.0, step: 'landed' },
+  { at: 7.3, step: 'explore' },
+  { at: 9.9, step: 'more' },
 ] as const
 
 type Step = (typeof BEATS)[number]['step'] | 'printing'
@@ -119,7 +119,13 @@ export default function OrbApp() {
   useEffect(() => {
     if (still || !turning) return
     const run = animate(spin, Math.PI * 2, { duration: 34, ease: 'linear', repeat: Infinity })
-    const warming = animate(tint, 1, { duration: 1.5, ease: 'easeInOut' })
+    /*
+     * Held until the sphere has finished gathering. Started with it, the colour
+     * travelled while the dots were still arriving and the grey orb the
+     * gradient is drawn on was never once on screen — so there was nothing for
+     * the change to be a change from.
+     */
+    const warming = animate(tint, 1, { delay: 1.9, duration: 1.1, ease: 'easeInOut' })
     return () => {
       run.stop()
       warming.stop()
@@ -142,20 +148,6 @@ export default function OrbApp() {
           className="absolute left-0 top-0 origin-top-left overflow-hidden rounded-[40px]"
           style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${scale})` }}
         >
-          {/*
-            The card's own fill, held still behind everything. The printing
-            frame travels up off the top and this is what it travels over, so
-            the gradient never moves and there is no seam to see.
-          */}
-          <motion.div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                'linear-gradient(101.874deg, #dedede 15.131%, #ffffff 57.588%, #cdcdcd 100.56%)',
-            }}
-            animate={{ opacity: page ? 0 : 1 }}
-            transition={{ duration: 0.8, ease: 'easeInOut' }}
-          />
           <AnimatePresence>
             {showPrint && (
               <motion.div
@@ -167,27 +159,11 @@ export default function OrbApp() {
               >
                 <PrintScene
                   hero={!page}
-                  /*
-                   * The machine does not bow out here — it goes up with the
-                   * heading. The lift takes it clear off the top of the frame,
-                   * so fading it as well would only be it disappearing out
-                   * from under the move it is part of.
-                   */
-                  leaving={false}
+                  leaving={step !== 'printing'}
                   detached={false}
-                  /*
-                   * It stops painting its own fill once the lift starts. The
-                   * backdrop behind is the same gradient, so nothing changes to
-                   * look at — but the card's rounded bottom edge stops
-                   * travelling up the frame as a visible seam.
-                   */
-                  bare={dusting}
                   /* From `crumble` on the slip belongs to `OrbScene`, which
                      starts it exactly where this one left it. */
                   handOver={dusting}
-                  /* Up and out as the dots take over, carrying the heading and
-                     the machine with it. */
-                  lift={dusting ? LIFT : 0}
                   onRest={onRest}
                 />
               </motion.div>

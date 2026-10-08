@@ -13,6 +13,10 @@ import { WorldDots } from './WorldDots'
  * rather than started here, so the sphere carries on turning through the swap
  * instead of snapping back to where it began, and the colours it arrives at
  * are the ones it is already wearing.
+ *
+ * It is also mounted before it is wanted and only revealed at the swap. A
+ * canvas that mounts at the moment it is shown has nothing on it for the first
+ * frame or two, which read as the orb blinking out and coming back.
  */
 const SLOT = { x: 450, y: 157, w: 290, h: 280 }
 /** Sized so `WorldDots`' own radius comes out at the slot's width. */
@@ -23,8 +27,6 @@ export function CardOrb({ show, spin }: { show: boolean; spin: MotionValue<numbe
   const reveal = useMotionValue(1)
   const morph = useMotionValue(1)
 
-  if (!show) return null
-
   return (
     <div
       aria-hidden
@@ -33,7 +35,7 @@ export function CardOrb({ show, spin }: { show: boolean; spin: MotionValue<numbe
       style={{
         left: SLOT.x + SLOT.w / 2 - W / 2,
         top: SLOT.y + SLOT.h / 2 - H / 2,
-        opacity: 0.6,
+        opacity: show ? 0.6 : 0,
       }}
     >
       <WorldDots
