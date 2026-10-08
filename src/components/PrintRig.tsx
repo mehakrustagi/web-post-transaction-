@@ -141,11 +141,25 @@ export function PrintRig({
   const still = useReducedMotion()
   const rest = useRef(onRest)
   rest.current = onRest
+  /*
+   * Read, not depended on. `useReducedMotion` reports `null` on the first
+   * render and resolves to a boolean after it, and with that value in the
+   * effect's dependencies the resolution tore the whole script down and
+   * started the wait again from zero — twice over, with StrictMode's double
+   * invoke. On this machine the two landed in the same tick and nothing
+   * showed; anywhere slower it left a settled printer with an empty mouth for
+   * as long as the restarts took, which looks exactly like a stall.
+   */
+  const stillRef = useRef(still)
+  stillRef.current = still
+  /** When the sequence first started, so a re-run resumes instead of restarting. */
+  const t0 = useRef(0)
 
   useEffect(() => {
     const W = PAPER_W
     const H = PAPER_H
     let live = true
+    if (!t0.current) t0.current = performance.now()
 
     const setFeed = (y: number) => {
       if (sheet.current) sheet.current.style.transform = `translateY(${y - H}px)`
@@ -156,7 +170,7 @@ export function PrintRig({
     stub.current!.style.clipPath = poly([[0, 0], [W, 0], ...tearLine(0, W).reverse()])
     setFeed(0)
 
-    if (still) {
+    if (stillRef.current) {
       paper.current!.style.clipPath = paperClip(W, W, true)
       cls('printing', true)
       cls('torn', true)
@@ -189,7 +203,7 @@ export function PrintRig({
       })
 
     const run = async () => {
-      await waitMs(delay * 1000)
+      await waitMs(Math.max(0, delay * 1000 - (performance.now() - t0.current)))
       if (!live) return
 
       // 1 · print — continuous feed out of the cavity, slowing over each line
@@ -288,7 +302,13 @@ export function PrintRig({
     return () => {
       live = false
     }
-  }, [delay, still])
+    /*
+     * Runs once. Everything it needs that can change — whether motion is
+     * wanted, who to tell when the slip is at rest — it reads through a ref,
+     * because re-running it means starting the printer again from the top.
+     */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const f = flapPath(PAPER_W)
 
