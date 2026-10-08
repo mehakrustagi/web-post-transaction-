@@ -74,11 +74,18 @@ export function WorldDots({
       const uy = y
       const uz = Math.sin(t) * r
 
-      const lumps =
-        0.62 * Math.sin(1.9 * ux + 1.3) * Math.cos(1.5 * uy - 0.4) +
-        0.34 * Math.sin(3.7 * uy + 2.1) * Math.cos(3.1 * uz + 1.1) +
-        0.22 * Math.sin(6.1 * uz - 0.7) * Math.cos(5.3 * ux + 2.6)
-      const k = 0.78 + 0.22 * (lumps * 0.5 + 0.5)
+      /*
+       * Three scales of crumple, not one of bulge. The coarse band gives the
+       * rim its lobes, the middle one the folds that run across the face, and
+       * the fine one the creases — which is what the card's own mesh is: a
+       * sheet crushed into a ball, with the spiral of points running over the
+       * folds and picking them out as contours.
+       */
+      const n1 =
+        Math.sin(5.3 * ux + 2.1) * Math.cos(4.9 * uy - 1.2) * Math.sin(5.7 * uz + 0.6)
+      const n2 = Math.sin(9.7 * uy + 1.7) * Math.cos(8.9 * uz - 2.2)
+      const n3 = Math.sin(16.3 * ux - 0.9) * Math.cos(14.1 * uy + 1.4)
+      const k = 0.845 + 0.095 * n1 + 0.062 * n2 + 0.028 * n3
 
       s[i * 4] = ux * k
       s[i * 4 + 1] = uy * k
@@ -88,7 +95,7 @@ export function WorldDots({
        * `uy` of +1 is the *bottom* of the screen, not the top — the projection
        * below adds it to the centre, so down is positive.
        */
-      s[i * 4 + 3] = 0.45 + 0.8 * Math.pow((uy + 1) / 2, 1.6)
+      s[i * 4 + 3] = 0.6 + 0.5 * Math.pow((uy + 1) / 2, 1.4)
     }
     seats.current = s
   }
@@ -145,8 +152,13 @@ export function WorldDots({
           y += (cy + sy * radius - y) * m
           /* The far side is further away, so it is fainter; and the orb is
              weighted towards its underside. */
+          /*
+           * Only a little depth fade. The far side of the surface is what
+           * draws the contours across the middle of it, so culling or dimming
+           * it hard leaves a shell with nothing inside.
+           */
           const front = (rz + 1) / 2
-          dim = 1 - m + m * Math.min(1, (0.58 + 0.42 * front) * seat[i * 4 + 3])
+          dim = 1 - m + m * Math.min(1, (0.72 + 0.28 * front) * seat[i * 4 + 3])
         }
 
         ctx.globalAlpha = dim

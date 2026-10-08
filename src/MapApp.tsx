@@ -23,10 +23,10 @@ const BEATS = [
   { at: 1.1, step: 'turn' },
   { at: 2.6, step: 'scan' },
   { at: 5.6, step: 'routes' },
-  { at: 8.0, step: 'orb' },
-  { at: 10.4, step: 'card' },
-  { at: 13.8, step: 'explore' },
-  { at: 17.0, step: 'more' },
+  { at: 9.8, step: 'orb' },
+  { at: 12.2, step: 'card' },
+  { at: 15.6, step: 'explore' },
+  { at: 18.8, step: 'more' },
 ] as const
 
 type Step = (typeof BEATS)[number]['step'] | 'printing'

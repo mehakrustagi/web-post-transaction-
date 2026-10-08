@@ -44,6 +44,15 @@ export const AT = {
 /** How far down the group starts: enough to sit centred on the frame. */
 const HERO_DROP = 240
 const LIFT_S = 1.5
+/**
+ * The printer rises at the headline's speed, not its own. Both move straight
+ * up the card a moment apart, and at different rates they read as two
+ * unrelated things that happen to be moving — so the machine's travel is
+ * divided by the heading's, and they share an ease.
+ */
+const RISE = 110
+const RISE_S = (RISE / HERO_DROP) * LIFT_S
+const EASE_UP = [0.5, 0, 0.2, 1] as const
 
 /**
  * The slip does not fly away — it recedes, into the exact spot the Cybertruck
@@ -117,7 +126,7 @@ export function PrintScene({
           className="absolute inset-0"
           initial={{ y: HERO_DROP }}
           animate={{ y: 0 }}
-          transition={{ delay: AT.lift, duration: LIFT_S, ease: [0.5, 0, 0.2, 1] }}
+          transition={{ delay: AT.lift, duration: LIFT_S, ease: EASE_UP }}
         >
         <motion.div
           className="absolute"
@@ -184,11 +193,11 @@ export function PrintScene({
       <motion.div
         className="absolute left-0 w-full"
         style={{ top: MACHINE_Y, height: MACHINE_H }}
-        /* Straight up from under the headline into its place, and still on
-           its way when the paper starts, as in the source. */
-        initial={{ opacity: 0, y: 110 }}
+        /* Straight up from under the headline into its place, at the same
+           speed it travelled, and still on its way when the paper starts. */
+        initial={{ opacity: 0, y: RISE }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: AT.machine, duration: 0.85, ease: [0.22, 0.8, 0.3, 1] }}
+        transition={{ delay: AT.machine, duration: RISE_S, ease: EASE_UP }}
       >
         <PrintRig
           delay={AT.feed}
