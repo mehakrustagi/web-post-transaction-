@@ -169,6 +169,8 @@ export function PrintRig({
   const paper = useRef<HTMLDivElement>(null)
   /** The warp that makes the sheet behave like cloth rather than card. */
   const warp = useRef<SVGFEDisplacementMapElement>(null)
+  /** And what makes its waves travel rather than sit still. */
+  const gust = useRef<SVGFEOffsetElement>(null)
   const bow = useRef<HTMLDivElement>(null)
   const stub = useRef<HTMLDivElement>(null)
   const flap = useRef<SVGSVGElement>(null)
@@ -206,6 +208,20 @@ export function PrintRig({
      * so the sheet stiffens back up as the machine takes its weight and
      * loosens as it lets go.
      */
+    /*
+     * The wind. One loop for the whole life of the sheet, sliding the noise
+     * field down and across so the ripples run along the paper. It is one
+     * attribute a frame and it has to outlast the feed, which stops.
+     */
+    let gusting = 0
+    const blow = (now: number) => {
+      const t = now * 0.001
+      gust.current?.setAttribute('dy', (-t * 22).toFixed(1))
+      gust.current?.setAttribute('dx', (Math.sin(t * 0.6) * 13).toFixed(1))
+      gusting = requestAnimationFrame(blow)
+    }
+    gusting = requestAnimationFrame(blow)
+
     /** The displacement the sheet is currently carrying, so it can be eased. */
     let slack = 0
     const setWarp = (v: number) => {
@@ -217,7 +233,7 @@ export function PrintRig({
       const free = Math.max(0, Math.min(1, y / H))
       if (sheet.current) sheet.current.style.transform = `translateY(${y - H}px)`
       /* Broad, slow undulation — a few pixels, never noise. */
-      setWarp(free * free * 7)
+      setWarp(free * free * 11)
       if (bow.current) {
         bow.current.style.transform = `perspective(1400px) rotateX(${(-free * 4.5).toFixed(2)}deg)`
       }
@@ -363,7 +379,7 @@ export function PrintRig({
         const q = Math.min(1, t / 1000)
         /* Low enough that handing the sheet to the next scene, which draws it
            flat, is not a step you can catch. */
-        setWarp(settling + (2.4 - settling) * (1 - Math.pow(1 - q, 3)))
+        setWarp(settling + (5 - settling) * (1 - Math.pow(1 - q, 3)))
         if (q >= 1) return false
       })
 
@@ -387,6 +403,7 @@ export function PrintRig({
     run()
     return () => {
       live = false
+      cancelAnimationFrame(gusting)
     }
     /*
      * Runs once. Everything it needs that can change — whether motion is
@@ -503,18 +520,32 @@ export function PrintRig({
                 height="130%"
                 colorInterpolationFilters="sRGB"
               >
-                <feTurbulence type="fractalNoise" baseFrequency="0.005 0.011" numOctaves="2" seed="7" result="swell">
+                {/*
+                  Broad across the sheet and banded down it, which is the shape
+                  a hanging length of cloth ripples in. The field is then slid
+                  along by `feOffset` — a travelling wave rather than a texture
+                  that merely churns in place, which is the whole difference
+                  between cloth and a flag.
+                */}
+                {/*
+                  One octave, not two. The second octave is fine detail, and
+                  fine detail in a displacement map does not ripple an edge, it
+                  tears it into steps — the sheet's silhouette came apart into
+                  little offset blocks. A single smooth band is what a wave is.
+                */}
+                <feTurbulence type="fractalNoise" baseFrequency="0.004 0.013" numOctaves="1" seed="7" result="swell">
                   <animate
                     attributeName="baseFrequency"
-                    dur="13s"
-                    values="0.005 0.011;0.007 0.008;0.005 0.011"
+                    dur="9s"
+                    values="0.004 0.013;0.0055 0.010;0.004 0.013"
                     repeatCount="indefinite"
                   />
                 </feTurbulence>
+                <feOffset ref={gust} in="swell" dx="0" dy="0" result="gust" />
                 <feDisplacementMap
                   ref={warp}
                   in="SourceGraphic"
-                  in2="swell"
+                  in2="gust"
                   scale="0"
                   xChannelSelector="R"
                   yChannelSelector="G"
