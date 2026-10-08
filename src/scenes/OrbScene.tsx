@@ -17,6 +17,13 @@ const ORB_D = CANVAS * 0.42 * 2
 /** Where the orb settles once it has gathered (438:17412). */
 const ORB_REST = { cx: 641, cy: 620, d: 293 }
 /**
+ * How far the card above travels up and out, and how far below its own seat
+ * the orb starts. The two move together, so the canvas reads as one tall thing
+ * sliding past rather than as one scene fading into another.
+ */
+export const LIFT = 520
+const ENTER = 300
+/**
  * The card's own rectangle on the page, and the slot it keeps for its artwork
  * (438:16720) — the slot stated in the card's coordinates, because that is
  * what the surface carries it in.
@@ -86,7 +93,8 @@ export function OrbScene({
   const seat = carded ? CARD_SLOT : ORB_REST
   const to = {
     x: crumbling ? seat.cx - CANVAS_MID.x : 0,
-    y: crumbling ? seat.cy - CANVAS_MID.y : 0,
+    /* It comes up from below as the card above it goes up and off. */
+    y: crumbling ? seat.cy - CANVAS_MID.y : ENTER,
     scale: crumbling ? seat.d / ORB_D : 1,
   }
 

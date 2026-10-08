@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'framer-motion'
 import { Header } from './components/Header'
 import { PrintScene } from './scenes/PrintScene'
-import { OrbScene, type OrbBeat } from './scenes/OrbScene'
+import { LIFT, OrbScene, type OrbBeat } from './scenes/OrbScene'
 import { MAP_PAGE_H, MAP_SCROLL, MAP_STOPS, MapPage, type MapStop } from './scenes/MapPage'
 import { Ribbon } from './scenes/PageScene'
 import { SparklesProvider } from './components/ui/sparkles'
@@ -142,6 +142,20 @@ export default function OrbApp() {
           className="absolute left-0 top-0 origin-top-left overflow-hidden rounded-[40px]"
           style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${scale})` }}
         >
+          {/*
+            The card's own fill, held still behind everything. The printing
+            frame travels up off the top and this is what it travels over, so
+            the gradient never moves and there is no seam to see.
+          */}
+          <motion.div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'linear-gradient(101.874deg, #dedede 15.131%, #ffffff 57.588%, #cdcdcd 100.56%)',
+            }}
+            animate={{ opacity: page ? 0 : 1 }}
+            transition={{ duration: 0.8, ease: 'easeInOut' }}
+          />
           <AnimatePresence>
             {showPrint && (
               <motion.div
@@ -155,9 +169,19 @@ export default function OrbApp() {
                   hero={!page}
                   leaving={step !== 'printing'}
                   detached={false}
+                  /*
+                   * It stops painting its own fill once the lift starts. The
+                   * backdrop behind is the same gradient, so nothing changes to
+                   * look at — but the card's rounded bottom edge stops
+                   * travelling up the frame as a visible seam.
+                   */
+                  bare={dusting}
                   /* From `crumble` on the slip belongs to `OrbScene`, which
                      starts it exactly where this one left it. */
                   handOver={dusting}
+                  /* Up and out as the dots take over, carrying the heading and
+                     the machine with it. */
+                  lift={dusting ? LIFT : 0}
                   onRest={onRest}
                 />
               </motion.div>

@@ -75,6 +75,8 @@ export function PrintScene({
   onRest,
   hero = true,
   handOver = false,
+  lift = 0,
+  bare = false,
 }: {
   /*
    * The card's furniture goes before its background does, and before the slip
@@ -94,9 +96,27 @@ export function PrintScene({
   hero?: boolean
   /** Passed through: another scene has taken the slip on. */
   handOver?: boolean
+  /**
+   * How far up the card has travelled. The whole frame moves as one — heading,
+   * machine and backdrop together — so what follows reads as the page carrying
+   * on below rather than as this one dissolving and another arriving.
+   */
+  lift?: number
+  /**
+   * Don't paint the card's fill — somebody behind is already painting it. Not
+   * the same thing as `detached`, which is about the slip: borrowing that for
+   * this turned the slip's hand-over from a cut into a fade and left a ghost
+   * of the receipt travelling up the frame.
+   */
+  bare?: boolean
 }) {
   return (
-    <div className="absolute inset-0 overflow-hidden rounded-[40px]">
+    <motion.div
+      className="absolute inset-0 overflow-hidden rounded-[40px]"
+      initial={false}
+      animate={{ y: -lift }}
+      transition={{ duration: 1.5, ease: [0.45, 0, 0.25, 1] }}
+    >
       {/*
         The card's own fill, on its own layer. It goes the moment the slip
         starts travelling — that is the background changing — while the slip
@@ -108,8 +128,8 @@ export function PrintScene({
           backgroundImage:
             'linear-gradient(101.874deg, #dedede 15.131%, #ffffff 57.588%, #cdcdcd 100.56%)',
         }}
-        animate={{ opacity: detached ? 0 : 1 }}
-        transition={{ duration: 0.7, ease: 'easeInOut' }}
+        animate={{ opacity: detached || bare ? 0 : 1 }}
+        transition={{ duration: bare ? 0 : 0.7, ease: 'easeInOut' }}
       />
       <motion.div
         className="absolute inset-0"
@@ -208,6 +228,6 @@ export function PrintScene({
           onRest={onRest}
         />
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
