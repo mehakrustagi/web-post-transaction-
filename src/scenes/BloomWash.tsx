@@ -259,6 +259,35 @@ export function BloomWash({
         >
           <BloomFields />
 
+          {/*
+            The white in it. Every field above multiplies, and multiplying by
+            white changes nothing — so white cannot be another stop in that
+            list, it has to be light added back. On plus-lighter this lifts a
+            broad band through the middle of the wash, which is what keeps the
+            teal and the blue reading as two colours either side of something
+            rather than as one band that changes hue.
+          */}
+          <motion.div
+            className="absolute"
+            style={{
+              left: -120,
+              top: 300,
+              width: 700,
+              height: 300,
+              borderRadius: '50%',
+              background:
+                'radial-gradient(closest-side, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.6) 42%, rgba(255,255,255,0.22) 74%, rgba(255,255,255,0) 100%)',
+              filter: 'blur(78px)',
+              mixBlendMode: 'plus-lighter',
+            }}
+            animate={{ x: [0, -64, 48, 0], scaleX: [1, 1.1, 0.95, 1], opacity: [0.72, 0.95, 0.72] }}
+            transition={{
+              x: { duration: 8.3, repeat: Infinity, ease: 'easeInOut' },
+              scaleX: { duration: 6.1, repeat: Infinity, ease: 'easeInOut' },
+              opacity: { duration: 4.7, repeat: Infinity, ease: 'easeInOut' },
+            }}
+          />
+
           {/* The floor pool. The drifting fields give the wash its movement,
               but movement alone reads as weightless — this is the ballast: a
               wide, flat, near-static band pinned to the bottom edge that the

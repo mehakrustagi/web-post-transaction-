@@ -271,6 +271,7 @@ export function PrintRig({
   handOver = false,
   away,
   onRest,
+  onPrinted,
 }: {
   delay?: number
   /** The machine and the tail in its mouth go; the slip stays. */
@@ -290,6 +291,8 @@ export function PrintRig({
   away: { x: number; y: number; scale: number }
   detachedScale?: number
   onRest?: () => void
+  /** The whole slip is out of the machine — before the tear, before the drop. */
+  onPrinted?: () => void
 }) {
   const rig = useRef<HTMLDivElement>(null)
   const sheet = useRef<HTMLDivElement>(null)
@@ -306,6 +309,8 @@ export function PrintRig({
   const still = useReducedMotion()
   const rest = useRef(onRest)
   rest.current = onRest
+  const printed = useRef(onPrinted)
+  printed.current = onPrinted
   /*
    * Read, not depended on. `useReducedMotion` reports `null` on the first
    * render and resolves to a boolean after it, and with that value in the
@@ -459,6 +464,7 @@ export function PrintRig({
       cls('torn', true)
       cls('flapped', true)
       sheet.current!.style.transform = `translateY(${REST_Y}px)`
+      printed.current?.()
       rest.current?.()
       return
     }
@@ -507,6 +513,7 @@ export function PrintRig({
       if (!live) return
       cls('rumble', false)
       cls('done', true)
+      printed.current?.()
       await waitMs(330)
       if (!live) return
 

@@ -74,6 +74,7 @@ export function PrintScene({
   leaving,
   detached,
   onRest,
+  onPrinted,
   hero = true,
   handOver = false,
   fill = true,
@@ -88,6 +89,8 @@ export function PrintScene({
   leaving: boolean
   detached: boolean
   onRest: () => void
+  /** Passed through from the rig: the slip is fully out of the machine. */
+  onPrinted?: () => void
   /**
    * Whether the flag, the country line and the headline are still wanted. The
    * map variant keeps them up while the slip turns and the map prints beside
@@ -220,6 +223,7 @@ export function PrintScene({
         transition={{ delay: AT.machine, duration: RISE_S, ease: EASE_UP }}
       >
         <PrintRig
+          onPrinted={onPrinted}
           delay={AT.feed}
           leaving={leaving}
           detached={detached}

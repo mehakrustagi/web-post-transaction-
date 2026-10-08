@@ -55,6 +55,8 @@ export default function TransactionApp() {
   const still = useReducedMotion()
   const [run, setRun] = useState(0)
   const [step, setStep] = useState<Step>('printing')
+  /** The slip is all the way out. Nothing about the card changes before this. */
+  const [printed, setPrinted] = useState(false)
   const timers = useRef<number[]>([])
 
   /* The card's artwork turns and warms exactly as it does on the orb page —
@@ -81,6 +83,7 @@ export default function TransactionApp() {
 
   useEffect(() => {
     setStep(still ? 'card' : 'printing')
+    setPrinted(false)
     byHand.current = false
     setStop('page')
     y.set(0)
@@ -107,8 +110,13 @@ export default function TransactionApp() {
 
   const landed = step === 'landed' || step in MAP_SCROLL
   const page = step === 'card' || landed
-  /* It warms up under the printer and is already there when the slip lands. */
-  const cooking = !page
+  /*
+   * It warms up only once the slip is all the way out, and is at full strength
+   * by the time it lands. Started with the print it was colour arriving on a
+   * card that was still being worked on — there is nothing to transition away
+   * from until the thing being transitioned away from actually exists.
+   */
+  const cooking = printed && !page
   const firing = step !== 'printing'
   /*
    * The print scene stays mounted right up to the page. It owns the flag, the
@@ -183,6 +191,7 @@ export default function TransactionApp() {
                     handOver={false}
                     fill={false}
                     onRest={onRest}
+                    onPrinted={() => setPrinted(true)}
                   />
                 </motion.div>
               )}
