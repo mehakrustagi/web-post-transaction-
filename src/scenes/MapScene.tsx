@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { animate, motion, useMotionValue, useReducedMotion, type MotionValue } from 'framer-motion'
 import { PAPER_H, PAPER_W, PaperFace } from '../components/Receipt'
-import { flapPath, paperClip } from '../components/PrintRig'
+import { FlapArt, flapPath, paperClip } from '../components/PrintRig'
 import { WorldDots } from '../features/map/WorldDots'
 import { arc, place, ROUTES, VIETNAM } from '../features/map/arcs'
 import { MAP_ASPECT } from '../features/map/dots'
@@ -216,21 +216,7 @@ export function MapScene({
               viewBox={`0 0 ${PAPER_W} ${flap.height}`}
               aria-hidden
             >
-              <defs>
-                <linearGradient id="turnedFold" gradientUnits="userSpaceOnUse" {...flap.grad}>
-
-                  {/* Shaded as a roll, not as a flat triangle: the sheet
-                      turns under at the crease and is in its own shadow there,
-                      brightest over the crown of the curl, and darkening again
-                      at the lip where the edge turns away from the light. */}
-                  <stop offset="0" stopColor="#D4D4DC" />
-                  <stop offset=".18" stopColor="#EDEDF2" />
-                  <stop offset=".62" stopColor="#FFFFFF" />
-                  <stop offset=".88" stopColor="#FBFBFD" />
-                  <stop offset="1" stopColor="#E6E6EE" />
-                </linearGradient>
-              </defs>
-              <path d={flap.d} fill="url(#turnedFold)" />
+              <FlapArt id="map" />
             </svg>
             <div
               className="paper still relative"

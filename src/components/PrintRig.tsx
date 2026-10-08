@@ -130,13 +130,19 @@ export function paperClip(W: number, front: number, withFlap?: boolean) {
 }
 
 /**
- * The folded corner: the tip reflected across the fold.
+ * The curled corner.
  *
- * Which means its free edges are the sheet's own edges, reflected — and one of
- * them is the torn edge. A clean diagonal there is why the flap used to read as
- * a separate shape laid over the slip rather than part of it, so the teeth are
- * carried round the crease: the same cut, at the same pitch, in the same phase,
- * continuing from exactly where the sheet's own tear leaves off.
+ * Not a fold. A fold is a crease with a flat triangle hanging off it, and at
+ * this size that reads as a shape laid over the slip however it is shaded —
+ * which is what it did. Paper this thin rolls: the corner wraps round on
+ * itself into a cone, tight where the sheet is still holding it at either end
+ * of the crease and open toward the foot, where the corner has the most
+ * freedom.
+ *
+ * So the silhouette is swept rather than reflected. Walking the crease and
+ * standing off it by how far the roll has opened at that point is the whole
+ * of the geometry, and it is what gives the shape its taper — a reflection
+ * can only ever give you the triangle back.
  */
 export function flapPath(W: number) {
   const ax = W - FW
@@ -150,74 +156,81 @@ export function flapPath(W: number) {
   const mx = -ny
   const my = nx
 
-  /** A point of the sheet, as it lies once the corner has come over. */
-  const reflect = (px: number, py: number) => {
-    const dx = px - ax
-    const dy = py - ay
-    const d = dx * nx + dy * ny
-    return [ax + 2 * d * nx - dx, ay + 2 * d * ny - dy] as const
+  /*
+   * How far the roll stands off the crease at its fullest. A little under
+   * where a flat fold would have put the corner, because paper going round a
+   * curve never reaches as far as paper going round a line.
+   */
+  const H = FW * Math.abs(ny) * 0.92
+
+  const N = 56
+  const pts: [number, number][] = []
+  for (let i = 0; i <= N; i++) {
+    const s = i / N
+    /* Zero at both ends, where the sheet still has hold of it, and fullest
+       past the middle — skewed toward the foot rather than symmetric, which
+       is the difference between a cone and a lens. */
+    const k = Math.pow(Math.sin(Math.PI * Math.pow(s, 1.45)), 1.06)
+    pts.push([ax + nx * L * s + mx * H * k, ay + ny * L * s + my * H * k])
   }
 
-  /*
-   * Every bow is a fraction of the fold's own length. Fixed at a few pixels —
-   * which is what they were when the fold was a 40px corner — a fold this size
-   * comes out as a flat triangle with a hard crease, and paper that thin has
-   * neither.
-   */
-  const bulge = L * 0.055
-  const slack = L * 0.045
-
-  /*
-   * The torn edge, reflected and lifted. Paper that has flopped over does not
-   * lie flat against itself: the free edge stands away from the face, most of
-   * all at the tip, which has the least holding it down.
-   */
-  const teeth = tearLine(ax, W) as [number, number][]
-  const edge: [number, number][] = []
-  for (let i = teeth.length - 1; i >= 0; i--) {
-    const [tx, ty] = teeth[i]
-    const [px, py] = reflect(tx, ty)
-    const s = (tx - ax) / (W - ax)
-    /*
-     * The curl. The free edge does not fall straight back from the crease — it
-     * rolls, so it stands furthest off the face in the middle of its run and
-     * comes back to the sheet at both ends, where the fold is holding it.
-     */
-    const lift = Math.sin(s * Math.PI) * slack * 2.6
-    edge.push([px + mx * lift, py + my * lift])
-  }
-
-  const [rx, ry] = edge[0]
-  const cx = (ax + bx) / 2 + mx * bulge
-  const cy = (ay + by) / 2 + my * bulge
-  /*
-   * And the teeth are rounded off rather than drawn as points. A torn edge
-   * that has curled is a torn edge seen along its own roll: the cut is still
-   * there and still continues the sheet's, but a saw drawn at full depth on a
-   * rolling edge reads as serration printed on it. Every vertex becomes the
-   * control point of a curve through the midpoints either side of it, which
-   * is the whole of the smoothing.
-   */
-  const mid = (i: number, j: number) =>
-    `${((edge[i][0] + edge[j][0]) / 2).toFixed(2)} ${((edge[i][1] + edge[j][1]) / 2).toFixed(2)}`
-  let lip = `L${mid(0, 1)}`
-  for (let i = 1; i < edge.length - 1; i++) {
-    lip += `Q${edge[i][0].toFixed(2)} ${edge[i][1].toFixed(2)} ${mid(i, i + 1)}`
-  }
-  lip += `L${edge[edge.length - 1][0].toFixed(2)} ${edge[edge.length - 1][1].toFixed(2)}`
-
-  const d =
-    `M${ax} ${ay} Q${cx} ${cy} ${bx} ${by}` +
-    ` Q${(bx + rx) / 2 + mx * slack} ${(by + ry) / 2 + my * slack} ${rx} ${ry}` +
-    lip +
-    'Z'
+  const mid = { x: (ax + bx) / 2, y: (ay + by) / 2 }
 
   return {
-    d,
-    grad: { x1: ax, y1: ay, x2: rx, y2: ry },
-    origin: `${(ax + bx) / 2}px ${(ay + by) / 2}px`,
-    height: Math.max(by, ry) + 30,
+    d:
+      `M${ax.toFixed(2)} ${ay.toFixed(2)}` +
+      pts.map(([x, y]) => `L${x.toFixed(2)} ${y.toFixed(2)}`).join('') +
+      'Z',
+    /* Across the roll, not along the sheet: this is the axis everything about
+       the curl is shaded on. */
+    grad: { x1: mid.x, y1: mid.y, x2: mid.x + mx * H, y2: mid.y + my * H },
+    origin: `${mid.x}px ${mid.y}px`,
+    height: Math.max(...pts.map(([, y]) => y)) + 30,
   }
+}
+
+/**
+ * What the curl is painted with, wherever it is drawn.
+ *
+ * Three scenes draw this same corner and they have to agree, so the art lives
+ * here and they bring their own `<svg>` — which is all that differs between
+ * them, because only the printer's copy has to be animated.
+ */
+export function FlapArt({ id, w = PAPER_W }: { id: string; w?: number }) {
+  const f = flapPath(w)
+  return (
+    <>
+      <defs>
+        <linearGradient id={`${id}Roll`} gradientUnits="userSpaceOnUse" {...f.grad}>
+          {/*
+            Read across the roll from the crease outward: deep inside the
+            curl where almost no light reaches, opening out through the
+            turn, white over the crown, and falling away again at the lip
+            as the edge turns from the light. A flat triangle can be shaded
+            light-to-dark and still look flat; it is the fact that this
+            comes back down at the far end that makes it a cylinder.
+          */}
+          <stop offset="0" stopColor="#A9AAB4" />
+          <stop offset=".10" stopColor="#C6C7CF" />
+          <stop offset=".30" stopColor="#E9E9EE" />
+          <stop offset=".58" stopColor="#FFFFFF" />
+          <stop offset=".85" stopColor="#FCFCFE" />
+          <stop offset="1" stopColor="#EDEDF3" />
+        </linearGradient>
+        {/* The core of the roll, laid over the top. The gradient alone gives
+            the turn its tone; this gives it its depth, and it has to be its
+            own layer because it is darkest exactly where the roll is
+            tightest rather than where the gradient starts. */}
+        <linearGradient id={`${id}Core`} gradientUnits="userSpaceOnUse" {...f.grad}>
+          <stop offset="0" stopColor="#5C5E6B" stopOpacity=".42" />
+          <stop offset=".07" stopColor="#7A7C88" stopOpacity=".2" />
+          <stop offset=".22" stopColor="#9A9CA8" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={f.d} fill={`url(#${id}Roll)`} />
+      <path d={f.d} fill={`url(#${id}Core)`} />
+    </>
+  )
 }
 
 const easeIO = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
@@ -742,20 +755,7 @@ export function PrintRig({
               viewBox={`0 0 ${PAPER_W} ${f.height}`}
               aria-hidden
             >
-              <defs>
-                <linearGradient id="flapFold" gradientUnits="userSpaceOnUse" {...f.grad}>
-                  {/* Shaded as a roll, not as a flat triangle: the sheet
-                      turns under at the crease and is in its own shadow there,
-                      brightest over the crown of the curl, and darkening again
-                      at the lip where the edge turns away from the light. */}
-                  <stop offset="0" stopColor="#D4D4DC" />
-                  <stop offset=".18" stopColor="#EDEDF2" />
-                  <stop offset=".62" stopColor="#FFFFFF" />
-                  <stop offset=".88" stopColor="#FBFBFD" />
-                  <stop offset="1" stopColor="#E6E6EE" />
-                </linearGradient>
-              </defs>
-              <path d={f.d} fill="url(#flapFold)" />
+              <FlapArt id="flap" />
             </svg>
 
 
