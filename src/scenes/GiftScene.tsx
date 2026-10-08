@@ -42,7 +42,16 @@ export const CARD = { x: 281, y: 336, w: 785, h: 300, r: 24 }
  * height. Every `top` is derived from it, so the wheels land on it.
  */
 const GROUND_ASPECT = 3200 / 2284
-const GROUND_LINE = 0.731
+/*
+ * Where the wheels belong in the plate, as a fraction of its height.
+ *
+ * The new plate has two horizons: a lit bank at 0.736 and the near ground
+ * that starts just under it. The old one's 0.731 put the wheels on the bank,
+ * and on this plate that is the top edge of a dark trough — the vehicle came
+ * out standing a clear forty pixels above anything it could be standing on.
+ * This is the near ground, which is the surface it is actually on.
+ */
+const GROUND_LINE = 0.766
 const TRUCK_ASPECT = 3068 / 1019
 
 /** Ground line, truck height, and the truck's centre, per frame. */
