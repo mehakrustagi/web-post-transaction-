@@ -152,6 +152,9 @@ export function PrintRig({
   const rig = useRef<HTMLDivElement>(null)
   const sheet = useRef<HTMLDivElement>(null)
   const paper = useRef<HTMLDivElement>(null)
+  /** The warp that makes the sheet behave like cloth rather than card. */
+  const warp = useRef<SVGFEDisplacementMapElement>(null)
+  const bow = useRef<HTMLDivElement>(null)
   const stub = useRef<HTMLDivElement>(null)
   const flap = useRef<SVGSVGElement>(null)
   const box = useRef<HTMLDivElement>(null)
@@ -178,8 +181,31 @@ export function PrintRig({
     let live = true
     if (!t0.current) t0.current = performance.now()
 
+    /*
+     * How the sheet moves, and how it behaves while it moves.
+     *
+     * A sheet that only translates reads as card. Paper this thin is cloth: the
+     * length hanging free of the rollers is unsupported, so the further it is
+     * out the more it bows under its own weight and the more it ripples. Both
+     * are driven off exactly that — the fraction of the slip below the slot —
+     * so the sheet stiffens back up as the machine takes its weight and
+     * loosens as it lets go.
+     */
+    /** The displacement the sheet is currently carrying, so it can be eased. */
+    let slack = 0
+    const setWarp = (v: number) => {
+      slack = v
+      warp.current?.setAttribute('scale', v.toFixed(2))
+    }
+
     const setFeed = (y: number) => {
+      const free = Math.max(0, Math.min(1, y / H))
       if (sheet.current) sheet.current.style.transform = `translateY(${y - H}px)`
+      /* Broad, slow undulation — a few pixels, never noise. */
+      setWarp(free * free * 7)
+      if (bow.current) {
+        bow.current.style.transform = `perspective(1400px) rotateX(${(-free * 4.5).toFixed(2)}deg)`
+      }
     }
     const cls = (name: string, on: boolean) => box.current?.classList.toggle(name, on)
 
@@ -259,6 +285,12 @@ export function PrintRig({
       ).finished
       if (!live) return
 
+      /*
+       * The pull before it gives. Paper tightens against the cut and then has
+       * nothing holding it, so the slack jumps as the tear runs and drops away
+       * once the sheet is hanging on its own.
+       */
+      const tension = slack
       cls('torn', true)
       const TEAR_MS = 820
       await frames((_dt, t) => {
@@ -266,6 +298,7 @@ export function PrintRig({
         paper.current!.style.clipPath = paperClip(W, e * W)
         /* The freed left side sags as the tear front travels right. */
         sheet.current!.style.transform = `translateY(${e * 4}px) rotate(${-e * 3}deg)`
+        setWarp(tension * (1 + Math.sin(e * Math.PI) * 0.45))
         if (t >= TEAR_MS) return false
       })
       if (!live) return
@@ -298,6 +331,20 @@ export function PrintRig({
         ],
         { duration: 400 },
       )
+      /*
+       * And then it drapes. Nothing is feeding it any more, so the ripple
+       * calms to a resting slack rather than staying taut — run alongside the
+       * fall, because the two are the same event: the sheet letting go.
+       */
+      const settling = slack
+      frames((_dt, t) => {
+        const q = Math.min(1, t / 1000)
+        /* Low enough that handing the sheet to the next scene, which draws it
+           flat, is not a step you can catch. */
+        setWarp(settling + (2.4 - settling) * (1 - Math.pow(1 - q, 3)))
+        if (q >= 1) return false
+      })
+
       await sheet.current!.animate(
         [
           { transform: 'translateY(4px) rotate(-3deg)' },
@@ -420,6 +467,39 @@ export function PrintRig({
         >
           <div ref={sheet} className="sheet relative" style={{ transformOrigin: '100% 0' }}>
             {/*
+              The cloth. `feTurbulence` at a very low frequency is a slow swell
+              rather than grain, and the displacement it drives is scaled by how
+              much of the sheet is hanging free — so the paper is flat where the
+              rollers hold it and loosest at the edge furthest from them.
+            */}
+            <svg className="absolute size-0" aria-hidden>
+              <filter
+                id="clothWarp"
+                x="-15%"
+                y="-15%"
+                width="130%"
+                height="130%"
+                colorInterpolationFilters="sRGB"
+              >
+                <feTurbulence type="fractalNoise" baseFrequency="0.005 0.011" numOctaves="2" seed="7" result="swell">
+                  <animate
+                    attributeName="baseFrequency"
+                    dur="13s"
+                    values="0.005 0.011;0.007 0.008;0.005 0.011"
+                    repeatCount="indefinite"
+                  />
+                </feTurbulence>
+                <feDisplacementMap
+                  ref={warp}
+                  in="SourceGraphic"
+                  in2="swell"
+                  scale="0"
+                  xChannelSelector="R"
+                  yChannelSelector="G"
+                />
+              </filter>
+            </svg>
+            {/*
               The curl rides inside the sheet rather than beside it. In the
               source it is a sibling of the receipt and stays at the tear line
               while the receipt drops, which leaves it floating a centimetre
@@ -444,12 +524,15 @@ export function PrintRig({
             </svg>
 
 
-            <div
-              ref={paper}
-              className="paper relative"
-              style={{ width: PAPER_W, height: PAPER_H }}
-            >
-              <PaperFace />
+            {/* The bow: the free end leans under its own weight. */}
+            <div ref={bow} style={{ transformOrigin: '50% 0%' }}>
+              <div
+                ref={paper}
+                className="paper relative"
+                style={{ width: PAPER_W, height: PAPER_H, filter: 'url(#clothWarp)' }}
+              >
+                <PaperFace />
+              </div>
             </div>
           </div>
         </div>
