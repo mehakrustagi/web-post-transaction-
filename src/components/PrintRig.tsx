@@ -204,40 +204,72 @@ export function flapPath(front = PAPER_W) {
     my = -my
   }
 
-  /**
-   * How fat the tube is where it is fattest.
+  /*
+   * How much paper there is to roll, and therefore how fat the roll is.
    *
-   * Slim. Paper rolls on a tight radius, and a roll that stands a long way off
-   * its own crease is not a roll — it is a flap again, sweeping across the
-   * middle of the slip and covering what is printed there.
+   * The strip that has left the sheet is the perpendicular distance from the
+   * crease to the corner it came from, and that strip has to go somewhere — it
+   * is wrapped round a tube. Half a turn or so, which is what a loose curl is,
+   * puts the radius at about half the strip. Guessing a radius instead is what
+   * made it a blade: a tube too thin to hold the paper that is missing from
+   * the sheet reads as a slash across the corner, not as a curl.
    */
-  const H = FH * 0.5
+  const strip = (ax * (by - ay)) / L
+  const R = strip * 0.5
 
-  const N = 56
-  const pts: [number, number][] = []
-  for (let i = 0; i <= N; i++) {
-    const s = i / N
-    /*
-     * Zero at the front and full at the left edge, with the shoulder well
-     * along — which is what makes it a tube with a mouth rather than a lens.
-     */
-    const k = Math.pow(s, 1.7) * (1 - Math.pow(1 - s, 2.6))
-    const r = H * k
-    pts.push([ax + nx * L * s + mx * r, ay + ny * L * s + my * r])
+  /** The contact line, and the far side of the tube above it. */
+  const at = (s: number) => [ax + nx * L * s, ay + ny * L * s] as const
+  /* Nothing at the front, where the paper is being let go this instant, and
+     full at the left edge, which was freed first and has rolled longest. */
+  const rad = (s: number) => R * Math.pow(s, 0.8)
+
+  const N = 40
+  const sweep = mx * ny - my * nx > 0 ? 1 : 0
+  /** The tube's own outline, and the same outline swollen for what it throws. */
+  const body = (k: number) => {
+    let d = `M${ax.toFixed(2)} ${ay.toFixed(2)}`
+    for (let i = 0; i <= N; i++) {
+      const s = i / N
+      const [px, py] = at(s)
+      const r = rad(s) * 2 * k
+      d += `L${(px + mx * r).toFixed(2)} ${(py + my * r).toFixed(2)}`
+    }
+    const [bX, bY] = at(1)
+    const rb = rad(1) * k
+    /* And it ends in the mouth of the tube rather than in a point. That round
+       end is the single thing that says "rolled" rather than "folded". */
+    return d + `A${rb.toFixed(2)} ${rb.toFixed(2)} 0 0 ${sweep} ${bX.toFixed(2)} ${bY.toFixed(2)}Z`
   }
 
-  const mid = { x: (ax + bx) / 2, y: (ay + by) / 2 }
+  const mid = at(0.55)
 
   return {
-    d:
-      `M${ax.toFixed(2)} ${ay.toFixed(2)}` +
-      pts.map(([x, y]) => `L${x.toFixed(2)} ${y.toFixed(2)}`).join('') +
-      'Z',
-    /* Across the roll, not along the sheet: the axis everything about the
-       curl is shaded on. */
-    grad: { x1: mid.x, y1: mid.y, x2: mid.x + mx * H, y2: mid.y + my * H },
-    origin: `${mid.x}px ${mid.y}px`,
-    height: by + H * 2 + 30,
+    d: body(1),
+    /*
+     * What it throws. A roll lying on paper is only believable because of the
+     * shadow under its far side — without one it is a shape printed on the
+     * sheet rather than an object resting on it. This is the same silhouette
+     * swollen past the tube, so the dark reads as hugging the outside of the
+     * roll wherever the roll happens to be fat.
+     */
+    cast: body(1.7),
+    /* Across the tube: from where it touches the sheet, out over the crown,
+       to the lip on the far side. */
+    grad: {
+      x1: mid[0],
+      y1: mid[1],
+      x2: mid[0] + mx * R * 2,
+      y2: mid[1] + my * R * 2,
+    },
+    /** The axis the cast runs on, which reaches further than the tube does. */
+    castGrad: {
+      x1: mid[0],
+      y1: mid[1],
+      x2: mid[0] + mx * R * 3.4,
+      y2: mid[1] + my * R * 3.4,
+    },
+    origin: `${(ax + bx) / 2}px ${(ay + by) / 2}px`,
+    height: by + R * 2.4 + 30,
     /** Where the crease meets the left edge, and the top. */
     depth: by,
     crest: ax,
@@ -276,21 +308,32 @@ export function FlapArt({
             light-to-dark and still look flat; it is the fact that this
             comes back down at the far end that makes it a cylinder.
           */}
-          <stop offset="0" stopColor="#A9AAB4" />
-          <stop offset=".10" stopColor="#C6C7CF" />
-          <stop offset=".30" stopColor="#E9E9EE" />
-          <stop offset=".58" stopColor="#FFFFFF" />
-          <stop offset=".85" stopColor="#FCFCFE" />
-          <stop offset="1" stopColor="#EDEDF3" />
+          <stop offset="0" stopColor="#95979F" />
+          <stop offset=".10" stopColor="#BFC1CB" />
+          <stop offset=".26" stopColor="#E8E9EF" />
+          <stop offset=".45" stopColor="#FFFFFF" />
+          <stop offset=".70" stopColor="#F6F6FA" />
+          <stop offset="1" stopColor="#D6D7E1" />
         </linearGradient>
+        {/* Nothing under the tube itself — the shadow belongs outside it, on
+            the sheet the roll is lying on. */}
+        <linearGradient id={`${id}Cast`} gradientUnits="userSpaceOnUse" {...full.castGrad}>
+          <stop offset="0" stopColor="#1A1D2B" stopOpacity="0" />
+          <stop offset=".42" stopColor="#1A1D2B" stopOpacity="0" />
+          <stop offset=".62" stopColor="#1A1D2B" stopOpacity=".3" />
+          <stop offset="1" stopColor="#1A1D2B" stopOpacity="0" />
+        </linearGradient>
+        <filter id={`${id}Soft`} x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="6" />
+        </filter>
         {/* The core of the roll, laid over the top. The gradient alone gives
             the turn its tone; this gives it its depth, and it has to be its
             own layer because it is darkest exactly where the roll is
             tightest rather than where the gradient starts. */}
         <linearGradient id={`${id}Core`} gradientUnits="userSpaceOnUse" {...full.grad}>
-          <stop offset="0" stopColor="#5C5E6B" stopOpacity=".42" />
-          <stop offset=".07" stopColor="#7A7C88" stopOpacity=".2" />
-          <stop offset=".22" stopColor="#9A9CA8" stopOpacity="0" />
+          <stop offset="0" stopColor="#4E5160" stopOpacity=".5" />
+          <stop offset=".06" stopColor="#6E7180" stopOpacity=".26" />
+          <stop offset=".18" stopColor="#9A9CA8" stopOpacity="0" />
         </linearGradient>
       </defs>
       <g
@@ -298,6 +341,7 @@ export function FlapArt({
           if (g && paths) paths([...g.querySelectorAll('path')])
         }}
       >
+        <path d={f.cast} fill={`url(#${id}Cast)`} filter={`url(#${id}Soft)`} />
         <path d={f.d} fill={`url(#${id}Roll)`} />
         <path d={f.d} fill={`url(#${id}Core)`} />
       </g>

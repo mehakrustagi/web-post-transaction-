@@ -65,7 +65,7 @@ body {
  * it is the torn one — so the shadow is deep enough for the teeth along it to
  * each cast their own.
  */
-.flap { opacity: 0; filter: drop-shadow(-3px 4px 4px rgba(20,22,35,.3)) drop-shadow(-1px 1px 1px rgba(20,22,35,.18)); }
+.flap { opacity: 0; filter: drop-shadow(3px 5px 5px rgba(20,22,35,.22)) drop-shadow(1px 2px 2px rgba(20,22,35,.14)); }
 .rig-box.flapped .flap { opacity: 1; }
 
 .sheet { visibility: hidden; }
