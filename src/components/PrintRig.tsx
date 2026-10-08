@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { PAPER_H, PAPER_W, PaperFace } from './Receipt'
 
@@ -59,6 +59,36 @@ const TD = 4
  */
 const FW = PAPER_W * 0.6
 const FH = PAPER_H * 0.4
+
+/**
+ * The cloth, as geometry rather than as a filter.
+ *
+ * A displacement map smears pixels, so at any amplitude worth looking at it
+ * chews the sheet's own outline into steps. This is the trick from the CSS
+ * ribbon pens instead: the slip is a chain of horizontal slices, each one a
+ * child of the slice above it, hinged on their shared edge and rotated a
+ * little further round. Nesting is what makes it paper — the slices cannot
+ * come apart, because every one of them is carried by the one it is attached
+ * to, so the surface is continuous by construction and the edge stays an edge.
+ *
+ * Eighteen is enough that the fold between slices reads as curve rather than
+ * facet, and few enough that the slip is eighteen copies of itself and not
+ * eighty.
+ */
+const RIBS = 18
+const RIB_H = PAPER_H / RIBS
+const RAD = Math.PI / 180
+/** How much of the sheet's length one full wave occupies. */
+const WAVES = 1.35
+
+/**
+ * How far a slice is allowed to move, by how far down the sheet it is.
+ *
+ * Zero at the rollers and full at the hem. The slot is holding the paper, so
+ * nothing happens at the top however hard it is blowing — which is also what
+ * keeps the serrated edge sitting straight in the mouth of the machine.
+ */
+const envelope = (i: number) => Math.pow(i / (RIBS - 1), 1.15)
 
 const px = (v: number | string) => (typeof v === 'number' ? `${v.toFixed(2)}px` : v)
 const poly = (pts: [number | string, number | string][]) =>
@@ -166,12 +196,11 @@ export function PrintRig({
 }) {
   const rig = useRef<HTMLDivElement>(null)
   const sheet = useRef<HTMLDivElement>(null)
-  const paper = useRef<HTMLDivElement>(null)
-  /** The warp that makes the sheet behave like cloth rather than card. */
-  const warp = useRef<SVGFEDisplacementMapElement>(null)
-  /** And what makes its waves travel rather than sit still. */
-  const gust = useRef<SVGFEOffsetElement>(null)
-  const bow = useRef<HTMLDivElement>(null)
+  /** The hinged slices, and the three layers each of them carries. */
+  const ribs = useRef<(HTMLDivElement | null)[]>([])
+  /** One full copy of the slip per slice, each showing only its own band. */
+  const faces = useRef<(HTMLDivElement | null)[]>([])
+  const shades = useRef<(HTMLDivElement | null)[]>([])
   const stub = useRef<HTMLDivElement>(null)
   const flap = useRef<SVGSVGElement>(null)
   const box = useRef<HTMLDivElement>(null)
@@ -208,44 +237,125 @@ export function PrintRig({
      * so the sheet stiffens back up as the machine takes its weight and
      * loosens as it lets go.
      */
+    /** How hard it is blowing, in degrees of swing at the hem. */
+    let slack = 0
+    /** And how far the free end is leaning under its own weight. */
+    let lean = 0
+    const setWave = (v: number) => {
+      slack = v
+    }
+
     /*
-     * The wind. One loop for the whole life of the sheet, sliding the noise
-     * field down and across so the ripples run along the paper. It is one
-     * attribute a frame and it has to outlast the feed, which stops.
+     * The wind. One loop for the whole life of the sheet: every frame it walks
+     * the chain and gives each slice the angle its own place in the wave calls
+     * for. The angles stored are absolute — where that slice is pointing — and
+     * what each one is actually given is the difference from the slice above
+     * it, because a nested rotation is measured against its parent.
+     *
+     * Two waves, not one: a long one that runs the length of the sheet and a
+     * shorter, faster one at a third the height. One alone is a sine and reads
+     * as a mechanism; two beating against each other is cloth.
      */
     let gusting = 0
-    const blow = (now: number) => {
-      const t = now * 0.001
-      gust.current?.setAttribute('dy', (-t * 22).toFixed(1))
-      gust.current?.setAttribute('dx', (Math.sin(t * 0.6) * 13).toFixed(1))
-      gusting = requestAnimationFrame(blow)
-    }
-    gusting = requestAnimationFrame(blow)
+    /** Every slice's absolute angle, so the shading can see across the seams. */
+    const tilt = new Float32Array(RIBS + 1)
+    /*
+     * And the ripple on its own, which is what the light is read off. The
+     * sheet's lean under its own weight is a lean, not a crease: shading the
+     * whole angle put the hem in permanent shadow and washed the bottom third
+     * of the slip grey.
+     */
+    const ripple = new Float32Array(RIBS + 1)
+    /*
+     * The light on a slice, as a colour. Turned so its face points up it
+     * catches the light; turned away it loses it — and it is this, not the
+     * geometry, that does nearly all the work, because a sheet rippling by a
+     * few degrees is almost invisible seen square on.
+     */
+    const lit = (v: number) =>
+      v < 0
+        ? `rgba(13,16,32,${(Math.min(1, -v) * 0.4).toFixed(3)})`
+        : `rgba(255,255,255,${(Math.min(1, v) * 0.34).toFixed(3)})`
 
-    /** The displacement the sheet is currently carrying, so it can be eased. */
-    let slack = 0
-    const setWarp = (v: number) => {
-      slack = v
-      warp.current?.setAttribute('scale', v.toFixed(2))
+    const weave = (now: number) => {
+      const t = now * 0.001
+      /*
+       * Two waves, not one: a long one that runs the length of the sheet and a
+       * shorter, faster one at a third the height. One alone is a sine and
+       * reads as a mechanism; two beating against each other is cloth.
+       */
+      for (let i = 0; i <= RIBS; i++) {
+        const e = envelope(i)
+        const u = i / RIBS
+        ripple[i] =
+          slack *
+          e *
+          (Math.sin(Math.PI * 2 * WAVES * u - t * 2.15) +
+            Math.sin(Math.PI * 2 * WAVES * 2.4 * u - t * 3.4) * 0.34)
+        tilt[i] = ripple[i] + lean * e
+      }
+      let prev = 0
+      let prevY = 0
+      for (let i = 0; i < RIBS; i++) {
+        const a = tilt[i]
+        /* A slow twist across the sheet as well, so it is not merely a flag
+           seen exactly side-on. */
+        const b = slack * envelope(i) * 0.22 * Math.sin(t * 0.85 + (i / RIBS) * 1.6)
+        const rib = ribs.current[i]
+        if (rib) {
+          rib.style.transform = `rotateX(${(a - prev).toFixed(3)}deg) rotateY(${(b - prevY).toFixed(3)}deg)`
+        }
+        /*
+         * Shaded as a gradient between the slice's own two edges rather than
+         * as one value for the whole of it. Flat per slice, the sheet comes
+         * out in eighteen visible bands; run edge to edge it is continuous
+         * across the seams, because neighbours agree on the edge they share.
+         */
+        const sh = shades.current[i]
+        if (sh) {
+          sh.style.backgroundImage = `linear-gradient(180deg, ${lit(Math.sin(ripple[i] * RAD) * 2.6)}, ${lit(Math.sin(ripple[i + 1] * RAD) * 2.6)})`
+        }
+        prev = a
+        prevY = b
+      }
+      gusting = requestAnimationFrame(weave)
     }
+    gusting = requestAnimationFrame(weave)
 
     const setFeed = (y: number) => {
       const free = Math.max(0, Math.min(1, y / H))
       if (sheet.current) sheet.current.style.transform = `translateY(${y - H}px)`
-      /* Broad, slow undulation — a few pixels, never noise. */
-      setWarp(free * free * 11)
-      if (bow.current) {
-        bow.current.style.transform = `perspective(1400px) rotateX(${(-free * 4.5).toFixed(2)}deg)`
-      }
+      /*
+       * Both scale with the length hanging free of the rollers, because that
+       * is the length with nothing holding it: the sheet stiffens back up as
+       * the machine takes its weight and loosens as it lets go.
+       */
+      setWave(free * free * 16)
+      lean = -free * 5
     }
     const cls = (name: string, on: boolean) => box.current?.classList.toggle(name, on)
 
-    paper.current!.style.clipPath = paperClip(W, 0)
+    /*
+     * The outline goes on every copy, because every copy is a whole slip and
+     * only shows its own band of one. During the tear only the top of it
+     * changes, and the tear line sits inside the first slice — so the frames
+     * that have to repaint eighteen clip paths are the two that cannot be
+     * helped, not the eight hundred of the rip.
+     */
+    const setClip = (c: string, topOnly = false) => {
+      const n = topOnly ? 2 : RIBS
+      for (let i = 0; i < n; i++) {
+        const f = faces.current[i]
+        if (f) f.style.clipPath = c
+      }
+    }
+
+    setClip(paperClip(W, 0))
     stub.current!.style.clipPath = poly([[0, 0], [W, 0], ...tearLine(0, W).reverse()])
     setFeed(0)
 
     if (stillRef.current) {
-      paper.current!.style.clipPath = paperClip(W, W, true)
+      setClip(paperClip(W, W, true))
       cls('printing', true)
       cls('torn', true)
       cls('flapped', true)
@@ -259,7 +369,7 @@ export function PrintRig({
      * one comes through the slot and picks up again between them, which is the
      * whole reason the feed is a velocity model and not a tween.
      */
-    const bands = [...paper.current!.querySelectorAll<HTMLElement>('[data-line]')].map(
+    const bands = [...faces.current[0]!.querySelectorAll<HTMLElement>('[data-line]')].map(
       (el) => [H - el.offsetTop - el.offsetHeight - 3, H - el.offsetTop + 3] as const,
     )
 
@@ -326,16 +436,16 @@ export function PrintRig({
       const TEAR_MS = 820
       await frames((_dt, t) => {
         const e = easeIO(Math.min(1, t / TEAR_MS))
-        paper.current!.style.clipPath = paperClip(W, e * W)
+        setClip(paperClip(W, e * W), true)
         /* The freed left side sags as the tear front travels right. */
         sheet.current!.style.transform = `translateY(${e * 4}px) rotate(${-e * 3}deg)`
-        setWarp(tension * (1 + Math.sin(e * Math.PI) * 0.45))
+        setWave(tension * (1 + Math.sin(e * Math.PI) * 0.45))
         if (t >= TEAR_MS) return false
       })
       if (!live) return
 
       // 3 · lets go: the corner curls over, the sheet drops and swings to rest
-      paper.current!.style.clipPath = paperClip(W, W, true)
+      setClip(paperClip(W, W, true))
       cls('flapped', true)
       /*
        * It falls over rather than appearing. The origin is the middle of the
@@ -379,7 +489,7 @@ export function PrintRig({
         const q = Math.min(1, t / 1000)
         /* Low enough that handing the sheet to the next scene, which draws it
            flat, is not a step you can catch. */
-        setWarp(settling + (5 - settling) * (1 - Math.pow(1 - q, 3)))
+        setWave(settling + (6 - settling) * (1 - Math.pow(1 - q, 3)))
         if (q >= 1) return false
       })
 
@@ -414,6 +524,60 @@ export function PrintRig({
   }, [])
 
   const f = flapPath(PAPER_W)
+
+  /*
+   * The chain, built from the hem upwards so each slice can be handed the one
+   * that hangs off it. Every slice is a window onto a whole copy of the slip,
+   * shifted up by however far down the sheet that slice sits — so the paper is
+   * drawn once as far as the eye is concerned, and the eighteen of them line
+   * up into it whatever angle they are at.
+   */
+  let cloth: ReactNode = null
+  for (let i = RIBS - 1; i >= 0; i--) {
+    const below = cloth
+    cloth = (
+      <div
+        key={i}
+        ref={(el) => {
+          ribs.current[i] = el
+        }}
+        className="absolute left-0"
+        style={{
+          /* Every slice but the first begins exactly where its parent ends,
+             which is the hinge they share and the reason they cannot part. */
+          top: i === 0 ? 0 : RIB_H,
+          width: PAPER_W,
+          height: RIB_H,
+          transformOrigin: '50% 0',
+          transformStyle: 'preserve-3d',
+        }}
+      >
+        {/* A hair taller than the slice, so the seam has no hairline to show. */}
+        <div
+          className="absolute left-0 top-0 overflow-hidden"
+          style={{ width: PAPER_W, height: RIB_H + 0.6 }}
+        >
+          <div
+            ref={(el) => {
+              faces.current[i] = el
+            }}
+            className="paper absolute left-0"
+            style={{ top: -i * RIB_H, width: PAPER_W, height: PAPER_H }}
+          >
+            <PaperFace />
+          </div>
+          <div
+            ref={(el) => {
+              shades.current[i] = el
+            }}
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+          />
+        </div>
+        {below}
+      </div>
+    )
+  }
 
   return (
     <div
@@ -506,53 +670,6 @@ export function PrintRig({
         >
           <div ref={sheet} className="sheet relative" style={{ transformOrigin: '100% 0' }}>
             {/*
-              The cloth. `feTurbulence` at a very low frequency is a slow swell
-              rather than grain, and the displacement it drives is scaled by how
-              much of the sheet is hanging free — so the paper is flat where the
-              rollers hold it and loosest at the edge furthest from them.
-            */}
-            <svg className="absolute size-0" aria-hidden>
-              <filter
-                id="clothWarp"
-                x="-15%"
-                y="-15%"
-                width="130%"
-                height="130%"
-                colorInterpolationFilters="sRGB"
-              >
-                {/*
-                  Broad across the sheet and banded down it, which is the shape
-                  a hanging length of cloth ripples in. The field is then slid
-                  along by `feOffset` — a travelling wave rather than a texture
-                  that merely churns in place, which is the whole difference
-                  between cloth and a flag.
-                */}
-                {/*
-                  One octave, not two. The second octave is fine detail, and
-                  fine detail in a displacement map does not ripple an edge, it
-                  tears it into steps — the sheet's silhouette came apart into
-                  little offset blocks. A single smooth band is what a wave is.
-                */}
-                <feTurbulence type="fractalNoise" baseFrequency="0.004 0.013" numOctaves="1" seed="7" result="swell">
-                  <animate
-                    attributeName="baseFrequency"
-                    dur="9s"
-                    values="0.004 0.013;0.0055 0.010;0.004 0.013"
-                    repeatCount="indefinite"
-                  />
-                </feTurbulence>
-                <feOffset ref={gust} in="swell" dx="0" dy="0" result="gust" />
-                <feDisplacementMap
-                  ref={warp}
-                  in="SourceGraphic"
-                  in2="gust"
-                  scale="0"
-                  xChannelSelector="R"
-                  yChannelSelector="G"
-                />
-              </filter>
-            </svg>
-            {/*
               The curl rides inside the sheet rather than beside it. In the
               source it is a sibling of the receipt and stays at the tear line
               while the receipt drops, which leaves it floating a centimetre
@@ -577,15 +694,23 @@ export function PrintRig({
             </svg>
 
 
-            {/* The bow: the free end leans under its own weight. */}
-            <div ref={bow} style={{ transformOrigin: '50% 0%' }}>
-              <div
-                ref={paper}
-                className="paper relative"
-                style={{ width: PAPER_W, height: PAPER_H, filter: 'url(#clothWarp)' }}
-              >
-                <PaperFace />
-              </div>
+            {/*
+              The cloth. Perspective sits here rather than on the sheet
+              because the sheet carries a drop-shadow, and a filtered element
+              flattens its own 3D — the chain has to be the thing that is in
+              perspective, with the shadow cast over the result.
+            */}
+            <div
+              style={{
+                position: 'relative',
+                width: PAPER_W,
+                height: PAPER_H,
+                perspective: 1500,
+                perspectiveOrigin: '50% 0',
+                transformStyle: 'preserve-3d',
+              }}
+            >
+              {cloth}
             </div>
           </div>
         </div>
