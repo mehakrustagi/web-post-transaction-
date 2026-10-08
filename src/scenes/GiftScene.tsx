@@ -49,9 +49,11 @@ const TRUCK_ASPECT = 2200 / 731
 const SHOT = {
   wide: { ground: 753, truckH: 301, cx: 665.5, plateW: 1600, across: 1282 },
   tight: { ground: 792, truckH: 282, cx: 663, plateW: 1600, across: 1282 },
-  /* On the card the horizon drops just past the bottom edge and only the
-     truck's roof is still in frame — the design shows a hint, not a vehicle. */
-  card: { ground: 318, truckH: 173, cx: CARD.w / 2, plateW: 980, across: CARD.w, roof: 288 },
+  /* On the card the horizon drops past the bottom edge and the vehicle is
+     wholly below it. It used to sit twelve pixels higher, which left the roof
+     peaking over the card's foot — not a hint of a truck, just a dark wedge
+     with no explanation, and the arrival has nothing left to arrive from. */
+  card: { ground: 318, truckH: 173, cx: CARD.w / 2, plateW: 980, across: CARD.w, roof: 302 },
 }
 
 type Shot = (typeof SHOT)[keyof typeof SHOT]
@@ -291,12 +293,20 @@ export function GiftScene({ beat }: { beat: Beat }) {
           opacity: panel ? 1 : 0,
           y: 0,
           left: card ? CARD.x + 37 : 283,
-          top: card ? CARD.y + 159 : 399,
+          /* Four lower than it was, which is where the figure's own middle
+             lands once the rules above and below it have gone. */
+          top: card ? CARD.y + 163 : 403,
           width: 198,
         }}
         transition={part(2).transition}
       >
-        <span className="h-px w-[192px] bg-white/10" />
+        {/*
+          No rules around the figure. The design has none — just the label, the
+          count and the three slots under it — and a horizontal line above and
+          below turned a column of three things into a boxed row, which is why
+          the whole panel read as cramped against a frame that is otherwise all
+          air.
+        */}
         <span className="flex h-[43px] items-center justify-center">
           <span
             className="bg-clip-text font-display text-[32px] font-medium leading-[40px] text-transparent"
@@ -309,7 +319,6 @@ export function GiftScene({ beat }: { beat: Beat }) {
             {GIFT.progress.value}
           </span>
         </span>
-        <span className="h-px w-[192px] bg-white/10" />
       </motion.div>
 
       <Slots card={card} show={panel} transition={part(3).transition} />

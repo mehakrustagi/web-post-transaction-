@@ -15,9 +15,16 @@ import { ShimmerText } from './ShimmerText'
  * needed: both copies are the same glyphs in the same place, so clipping the
  * bright one over the dim one reveals it with nothing behind.
  */
-/** A beat to read the line unrevealed, then twice that to reveal it. */
-const HOLD = 1
-const SWEEP = 2
+/**
+ * A beat to read the line unrevealed, then the sweep.
+ *
+ * Three seconds for one line of six words is a long time to ask anybody to
+ * watch a wipe travel, and the hold in front of it was a second of a line that
+ * is already legible. Still long enough that you register it as unrevealed and
+ * then see it revealed, which is the whole trick.
+ */
+const HOLD = 0.6
+const SWEEP = 1.15
 const STARS = 115
 /** How long one speck takes to wander its little path and come back. */
 const DRIFT = 4
