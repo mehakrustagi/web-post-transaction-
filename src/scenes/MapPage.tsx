@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { motion, type MotionValue } from 'framer-motion'
 import { EXPLORE, LINKS, MAP_OFFER, MAP_RAIL_STEPS, MAP_RAIL_TICKS } from '../content'
 import { CountryCard, OfferCard } from './PageBelow'
 import { CardOrb } from '../features/map/CardOrb'
@@ -25,11 +25,14 @@ export function MapPage({
   at,
   show,
   landed = false,
+  spin,
 }: {
   at: MapStop
   show: boolean
   /** The orb has finished travelling and is this card's artwork now. */
   landed?: boolean
+  /** The turning it arrived with, which it carries on. */
+  spin: MotionValue<number>
 }) {
   const seen = (stop: MapStop) => MAP_STOPS.indexOf(at) >= MAP_STOPS.indexOf(stop)
 
@@ -57,7 +60,7 @@ export function MapPage({
           {...rise(1, 'page')}
         >
           {/* No artwork: the orb is flying into that slot from outside. */}
-          <OfferCard offer={MAP_OFFER} art={false} slot={<CardOrb show={landed} />} />
+          <OfferCard offer={MAP_OFFER} art={false} slot={<CardOrb show={landed} spin={spin} />} />
         </motion.div>
 
         <Rule top={735} show={seen('explore') && show} />

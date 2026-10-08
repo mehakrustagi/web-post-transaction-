@@ -5,15 +5,20 @@ import { MAP_ASPECT, MAP_DOTS } from './dots'
 const COUNT = MAP_DOTS.length / 2
 
 /** Blend two hex colours. Used once a frame, not once a dot. */
-function mix(a: string, b: string, t: number) {
-  const pa = parseInt(a.slice(1), 16)
-  const pb = parseInt(b.slice(1), 16)
-  const ch = (sh: number) => {
-    const x = (pa >> sh) & 255
-    const y = (pb >> sh) & 255
-    return Math.round(x + (y - x) * t)
+function rgb(c: string): [number, number, number] {
+  if (c[0] === '#') {
+    const n = parseInt(c.slice(1), 16)
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
   }
-  return `rgb(${ch(16)},${ch(8)},${ch(0)})`
+  const [r, g, b] = c.slice(4, -1).split(',').map(Number)
+  return [r, g, b]
+}
+
+function mix(a: string, b: string, t: number) {
+  const [r1, g1, b1] = rgb(a)
+  const [r2, g2, b2] = rgb(b)
+  const ch = (x: number, y: number) => Math.round(x + (y - x) * t)
+  return `rgb(${ch(r1, r2)},${ch(g1, g2)},${ch(b1, b2)})`
 }
 /** Golden angle, for spacing the sphere's points evenly. */
 const PHI = Math.PI * (3 - Math.sqrt(5))
@@ -43,6 +48,9 @@ export function WorldDots({
   colour = '#9aa0a6',
   orbFrom = '#d1d1d1',
   orbTo = '#666666',
+  orbFromWarm,
+  orbToWarm,
+  tint,
 }: {
   width: number
   height: number
@@ -72,6 +80,14 @@ export function WorldDots({
    */
   orbFrom?: string
   orbTo?: string
+  /**
+   * Where the orb's gradient travels to while it turns, and how far along it
+   * is. A motion value rather than a prop so the colour can move without
+   * rebuilding the draw loop sixty times a second.
+   */
+  orbFromWarm?: string
+  orbToWarm?: string
+  tint?: MotionValue<number>
 }) {
   const canvas = useRef<HTMLCanvasElement>(null)
 
@@ -263,11 +279,14 @@ export function WorldDots({
       }
       ctx.globalAlpha = 1
 
-      const tint = ctx.createLinearGradient(0, 0, width, 0)
-      tint.addColorStop(0, mix(colour, orbFrom, whole))
-      tint.addColorStop(1, mix(colour, orbTo, whole))
+      const warm = tint?.get() ?? 0
+      const from = orbFromWarm ? mix(orbFrom, orbFromWarm, warm) : orbFrom
+      const to = orbToWarm ? mix(orbTo, orbToWarm, warm) : orbTo
+      const ink = ctx.createLinearGradient(0, 0, width, 0)
+      ink.addColorStop(0, mix(colour, from, whole))
+      ink.addColorStop(1, mix(colour, to, whole))
       ctx.globalCompositeOperation = 'source-in'
-      ctx.fillStyle = tint
+      ctx.fillStyle = ink
       ctx.fillRect(0, 0, width, height)
       ctx.globalCompositeOperation = 'source-over'
 
@@ -276,7 +295,7 @@ export function WorldDots({
 
     frame = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(frame)
-  }, [width, height, reveal, morph, spin, colour, orbFrom, orbTo, source, sheet, scatter])
+  }, [width, height, reveal, morph, spin, colour, orbFrom, orbTo, orbFromWarm, orbToWarm, tint, source, sheet, scatter])
 
   return <canvas ref={canvas} style={{ width, height, display: 'block' }} />
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { animate, motion, useMotionValue, useReducedMotion } from 'framer-motion'
+import { animate, motion, useMotionValue, useReducedMotion, type MotionValue } from 'framer-motion'
 import { PAPER_H, PAPER_W, PaperFace } from '../components/Receipt'
 import { flapPath, paperClip } from '../components/PrintRig'
 import { WorldDots } from '../features/map/WorldDots'
@@ -90,11 +90,20 @@ const at = (beat: MapBeat, stop: MapBeat) => ORDER.indexOf(beat) >= ORDER.indexO
  * Then the routes draw, the country lights up, and the map's dots gather into
  * the orb, which takes its place in the card.
  */
-export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void }) {
+export function MapScene({
+  beat,
+  spin,
+  tint,
+}: {
+  beat: MapBeat
+  /** Handed in, so the orb keeps turning through the hand-over to the card. */
+  spin: MotionValue<number>
+  /** How far its gradient has travelled towards the card's own. */
+  tint: MotionValue<number>
+}) {
   const still = useReducedMotion()
   const reveal = useMotionValue(1)
   const morph = useMotionValue(0)
-  const spin = useMotionValue(0)
 
   const scanning = at(beat, 'scan')
   const routed = at(beat, 'routes')
@@ -128,12 +137,17 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
       repeat: Infinity,
       delay: GATHER_S * 0.5,
     })
-    const done = window.setTimeout(() => onOrb?.(), GATHER_S * 1000)
+    /*
+     * And its colour walks to the card's while it does. By the time the
+     * surface closes in, the orb is already wearing what it will wear there —
+     * which is what lets the hand-over to the card's own copy be invisible.
+     */
+    const warming = animate(tint, 1, { duration: 2.2, ease: 'easeInOut' })
     return () => {
       run.stop()
-      clearTimeout(done)
+      warming.stop()
     }
-  }, [orbed, spin, still, onOrb])
+  }, [orbed, spin, tint, still])
 
   const flap = useMemo(() => flapPath(PAPER_W), [])
   const hub = place(VIETNAM.lat, VIETNAM.lng)
@@ -241,7 +255,7 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
             className="absolute"
             style={{ left: -TRAVEL, top: CANVAS_TOP }}
             initial={false}
-            animate={orbTo}
+            animate={{ ...orbTo, opacity: carded ? 0.6 : 1 }}
             /* It drops into the slot rather than arriving at it: a spring
                with enough mass to settle, which is what makes the collapse
                read as the orb finding its place and not as a cut. */
@@ -258,9 +272,12 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
               morph={morph}
               spin={spin}
               /* Grey on the card it is printed on, pale once it is on the teal. */
-              colour={carded ? '#bfe9e4' : '#8d939a'}
-              orbFrom={carded ? '#dcf5f1' : '#d1d1d1'}
-              orbTo={carded ? '#8fd3cc' : '#666666'}
+              colour="#8d939a"
+              orbFrom="#d1d1d1"
+              orbTo="#666666"
+              orbFromWarm="#dcf5f1"
+              orbToWarm="#8fd3cc"
+              tint={tint}
               scatter={0.16}
             />
 

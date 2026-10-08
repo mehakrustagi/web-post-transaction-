@@ -24,12 +24,12 @@ const BEATS = [
   { at: 2.08, step: 'scan' },
   { at: 4.48, step: 'routes' },
   { at: 7.84, step: 'orb' },
-  { at: 9.76, step: 'card' },
+  { at: 10.5, step: 'card' },
   /* Once it has settled it stops being a thing flying over the page and
      becomes the card's artwork, drawn behind the card's own text. */
-  { at: 11.28, step: 'landed' },
-  { at: 12.48, step: 'explore' },
-  { at: 15.04, step: 'more' },
+  { at: 12.0, step: 'landed' },
+  { at: 13.2, step: 'explore' },
+  { at: 15.8, step: 'more' },
 ] as const
 
 type Step = (typeof BEATS)[number]['step'] | 'printing'
@@ -46,6 +46,15 @@ export default function MapApp() {
   const [run, setRun] = useState(0)
   const [step, setStep] = useState<Step>('printing')
   const timers = useRef<number[]>([])
+
+  /*
+   * The orb's turning and its colour live up here, not in the scene that
+   * starts them. The scene is swapped for one drawn inside the card when it
+   * lands, and if the sphere began its revolution again there the swap would
+   * be a visible snap — it has to stay the same orb all the way through.
+   */
+  const spin = useMotionValue(0)
+  const tint = useMotionValue(0)
 
   const y = useMotionValue(0)
   const byHand = useRef(false)
@@ -152,10 +161,10 @@ export default function MapApp() {
               transition={{ duration: 0.9, ease: 'easeInOut' }}
             />
 
-            <MapPage at={stop} show={page} landed={landed} />
+            <MapPage at={stop} show={page} landed={landed} spin={spin} />
             <Ribbon show={page} label={MAP_OFFER.ribbon} />
 
-            {(mapping || page) && !landed && <MapScene key={`map-${run}`} beat={beat} />}
+            {(mapping || page) && !landed && <MapScene spin={spin} tint={tint} key={`map-${run}`} beat={beat} />}
           </motion.div>
 
           <Header dark={false} onPage={page} />
