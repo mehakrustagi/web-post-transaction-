@@ -782,7 +782,7 @@ export function PrintRig({
        */
       const settling = slack
       frames((_dt, t) => {
-        const q = Math.min(1, t / 1000)
+        const q = Math.min(1, t / 560)
         /* Low enough that handing the sheet to the next scene, which draws it
            flat, is not a step you can catch. */
         setWave(settling + (6 - settling) * (1 - Math.pow(1 - q, 3)))
@@ -797,7 +797,10 @@ export function PrintRig({
           { transform: 'translateY(29px) rotate(.3deg)', offset: 0.86 },
           { transform: 'translateY(28px) rotate(0deg)' },
         ],
-        { duration: 1100, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' },
+        /* Half what it was. The swing is a settle, not a performance — and
+           what follows it is the slip leaving, so a long one is a pause with
+           a wobble in it. */
+        { duration: 540, easing: 'cubic-bezier(.3,.8,.3,1)', fill: 'forwards' },
       ).finished
       if (!live) return
       sheet.current!.getAnimations().forEach((a) => a.cancel())
@@ -958,9 +961,12 @@ export function PrintRig({
               : 'none',
             opacity: handOver ? 0 : detached ? 0 : 1,
             transition: detached
-              /* The fade trails the travel rather than cutting it short, so
-                 the sheet is still readable most of the way back. */
-              ? 'transform 1.3s cubic-bezier(.3,0,.2,1), opacity .85s ease-in .3s'
+              /* The fade still trails the travel so the sheet stays readable
+                 most of the way back, but the whole move is nearly half what
+                 it was: it is the slip getting out of the way of the gift, and
+                 a recede that outlasts the thing it is making room for reads
+                 as the animation holding its own door open. */
+              ? 'transform .72s cubic-bezier(.4,0,.2,1), opacity .5s ease-in .16s'
               : 'none',
           }}
         >

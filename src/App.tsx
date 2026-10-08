@@ -20,29 +20,30 @@ const FLOOR = -(PAGE_H - FRAME_H)
  * every printed line and so takes as long as the slip is long.
  */
 const BEATS = [
-  /* The printer goes. The heading has been gone since the cut started. */
-  { at: 0.12, step: 'clearing' },
+  /* The printer goes, the instant the slip is down. The heading has been
+     gone since the cut started. */
+  { at: 0.04, step: 'clearing' },
   /* And the slip shrinks straight back into the gift, which is what the cut
      was for — the card turns over behind it at the same moment, the only time
      the two cards share the screen. */
-  { at: 0.45, step: 'detached' },
+  { at: 0.16, step: 'detached' },
   /* The bare card and the truck's arrival say the same thing, so the gap
      between them is only as long as it takes the vehicle to appear. */
-  { at: 1.55, step: 'gift' },
+  { at: 0.95, step: 'gift' },
   /* Long enough to hold the line unrevealed, sweep it, and then look at it. */
-  { at: 3.4, step: 'pickup' },
+  { at: 2.75, step: 'pickup' },
   /*
    * Straight off the back of the reveal. The sweep now finishes at about 5.2
    * and this used to wait until 7, which is nearly two seconds of a revealed
    * line being looked at after it has finished revealing — long past the point
    * where the next thing is what you are waiting for.
    */
-  { at: 5.6, step: 'detail' },
-  { at: 7.9, step: 'page' },
+  { at: 4.95, step: 'detail' },
+  { at: 7.25, step: 'page' },
   /* The page carries on below the fold, so it takes itself down it. */
-  { at: 10.4, step: 'offers' },
-  { at: 13.4, step: 'explore' },
-  { at: 16.0, step: 'more' },
+  { at: 9.75, step: 'offers' },
+  { at: 12.75, step: 'explore' },
+  { at: 15.35, step: 'more' },
 ] as const
 
 /** How far the page has scrolled at each stop, in frame pixels. */

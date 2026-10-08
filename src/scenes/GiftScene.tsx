@@ -47,8 +47,11 @@ const TRUCK_ASPECT = 3068 / 1019
 
 /** Ground line, truck height, and the truck's centre, per frame. */
 const SHOT = {
-  wide: { ground: 753, truckH: 301, cx: 665.5, plateW: 1600, across: 1282 },
-  tight: { ground: 792, truckH: 282, cx: 663, plateW: 1600, across: 1282 },
+  /* Both ground lines are 46 lower than the design states them, which is five
+     per cent of the frame's height — the plate and the vehicle standing on it
+     both hang off this, so moving it moves the pair of them together. */
+  wide: { ground: 799, truckH: 301, cx: 665.5, plateW: 1600, across: 1282 },
+  tight: { ground: 838, truckH: 282, cx: 663, plateW: 1600, across: 1282 },
   /* On the card the horizon drops past the bottom edge and the vehicle is
      wholly below it. It used to sit twelve pixels higher, which left the roof
      peaking over the card's foot — not a hint of a truck, just a dark wedge
