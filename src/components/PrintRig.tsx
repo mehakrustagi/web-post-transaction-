@@ -484,10 +484,13 @@ export function PrintRig({
       if (!live) return
 
       // 2 · tear — a tug, then the serrated edge rips steadily left to right
-      rig.current?.animate(
-        [{ transform: 'none' }, { transform: 'translateY(1.5px)' }, { transform: 'none' }],
-        { duration: 300, easing: 'cubic-bezier(.4,0,.2,1)' },
-      )
+      /*
+       * The machine holds still. It used to take a jolt as the cut gave and
+       * another as the sheet dropped, and a printer this wide moving even a
+       * pixel and a half is the whole frame moving — it read as the screen
+       * being shaken rather than as paper coming off a roll. The tug stays,
+       * because that is on the sheet, which is the thing being pulled.
+       */
       await sheet.current!.animate(
         [
           { transform: 'translateY(0)' },
@@ -533,15 +536,6 @@ export function PrintRig({
           { transform: 'scale(1) rotate(0)', opacity: 1 },
         ],
         { duration: 680, easing: 'cubic-bezier(.3,.9,.4,1)' },
-      )
-      rig.current?.animate(
-        [
-          { transform: 'none' },
-          { transform: 'translateY(-4px)' },
-          { transform: 'translateY(.8px)' },
-          { transform: 'none' },
-        ],
-        { duration: 650, easing: 'cubic-bezier(.3,1.3,.5,1)' },
       )
       stub.current?.animate(
         [

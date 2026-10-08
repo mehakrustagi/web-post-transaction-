@@ -67,14 +67,14 @@ export function SpeedBurst({ at, cx, cy }: { at: number; cx: number; cy: number 
       animate={{ opacity: [0, 0.18, 0.18, 0], scale: 1.08 }}
       transition={{
         delay: at,
-        duration: 0.95,
+        duration: 1.05,
         ease: 'easeOut',
         /* Snaps in with the line and leaves slowly, which is the shape of a
            flash — the reverse of it reads as a thing being switched off. */
         // 7% was faithful to the file and all but invisible on a card this
         // light. At 18% it is still only something caught at the edge of the
         // moment, but it is something.
-        opacity: { delay: at, duration: 0.95, times: [0, 0.16, 0.42, 1], ease: 'linear' },
+        opacity: { delay: at, duration: 1.05, times: [0, 0.16, 0.42, 1], ease: 'linear' },
       }}
     >
       {/*
