@@ -167,7 +167,13 @@ export default function OrbApp() {
               >
                 <PrintScene
                   hero={!page}
-                  leaving={step !== 'printing'}
+                  /*
+                   * The machine does not bow out here — it goes up with the
+                   * heading. The lift takes it clear off the top of the frame,
+                   * so fading it as well would only be it disappearing out
+                   * from under the move it is part of.
+                   */
+                  leaving={false}
                   detached={false}
                   /*
                    * It stops painting its own fill once the lift starts. The
