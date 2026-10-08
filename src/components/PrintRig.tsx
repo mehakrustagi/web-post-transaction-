@@ -34,6 +34,16 @@ const HOLE_R = 9 * S
 /** Where the sheet comes through, measured from the top of the machine. */
 export const EXIT_Y = 27 * S
 
+/**
+ * How the machine goes once it has nothing left to print.
+ *
+ * Short, accelerating, and dropping a little as it goes. A half-second linear
+ * dissolve on a thing this size reads as it being slowly rubbed out; it should
+ * get out of the way.
+ */
+const BOW_OUT =
+  'opacity .2s cubic-bezier(.4,0,1,.6), transform .26s cubic-bezier(.4,0,1,.6)'
+
 /** Tear line, px below the top of the paper window — just under the slot lip. */
 const T = 15 * S
 /** Tooth width and depth. The torn edge and the sheet's foot are the same cut. */
@@ -332,7 +342,8 @@ export function PrintRig({
           width: MACHINE_W,
           height: MACHINE_H,
           opacity: leaving ? 0 : 1,
-          transition: 'opacity .45s ease-in',
+          transform: leaving ? 'translateY(16px)' : 'none',
+          transition: BOW_OUT,
         }}
       >
         {/* The body. */}
@@ -378,7 +389,12 @@ export function PrintRig({
         <div
           ref={stub}
           className="stub absolute left-0 top-0 z-[2] w-full bg-white"
-          style={{ height: T + TD + 2, opacity: leaving ? 0 : 1, transition: 'opacity .45s ease-in' }}
+          style={{
+            height: T + TD + 2,
+            opacity: leaving ? 0 : 1,
+            transform: leaving ? 'translateY(16px)' : 'none',
+            transition: BOW_OUT,
+          }}
         />
 
         {/*
@@ -452,7 +468,8 @@ export function PrintRig({
             'linear-gradient(180deg, #060607 0%, rgba(6,6,7,.94) 28%, rgba(6,6,7,.62) 60%, rgba(6,6,7,.3) 85%, rgba(6,6,7,.18) 100%)',
           boxShadow: 'inset 0 2px 3px rgba(0,0,0,.85), inset 0 -1px 0 rgba(255,255,255,.04)',
           opacity: leaving ? 0 : 1,
-          transition: 'opacity .45s ease-in',
+          transform: leaving ? 'translateY(16px)' : 'none',
+          transition: BOW_OUT,
         }}
       />
 
