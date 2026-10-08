@@ -115,7 +115,7 @@ export function OrbScene({
   }, [crumbling, morph, still])
 
 
-  const flap = useMemo(() => flapPath(PAPER_W), [])
+  const flap = useMemo(() => flapPath(), [])
 
   return (
     /*

@@ -57,8 +57,31 @@ const TD = 4
  * and lies across the face, covering what is printed under it. Proportional to
  * the sheet, because that is what decides how far it falls.
  */
-const FW = PAPER_W * 0.34
-const FH = PAPER_H * 0.2
+/*
+ * The corner that comes over, now at the top *left*.
+ *
+ * Which is the end the tear starts from, and that is the whole reason: the
+ * left of the sheet is free before the cut is a third of the way across, so it
+ * has something to curl with while the rest of the tear is still running. A
+ * corner on the right cannot move until the last tooth is cut, which is why it
+ * used to arrive as a separate event after the fact.
+ *
+ * Proportioned so the crease meets the top edge about a fifth of the way
+ * along — early enough to curl while the cut carries on — and steeper down
+ * the side to keep the roll the same size it was.
+ */
+const FW = PAPER_W * 0.18
+/**
+ * How deep down the side the crease reaches once the cut is finished.
+ *
+ * Shallow, and it has to be: the paper above the crease is not hidden, it is
+ * *gone* — rolled into the tube — so a deep crease means a large wedge of
+ * missing slip and a tube far too slim to account for it. A thin strip along
+ * the top rolls into a tube you can believe.
+ */
+const FH = PAPER_H * 0.13
+/** And how far along the top edge it reaches, which is a corner, not the lot. */
+const FX = 0.5
 
 /**
  * The cloth, as geometry rather than as a filter.
@@ -116,11 +139,22 @@ function tearLine(x0: number, x1: number): Pt[] {
   return pts
 }
 
-/** The sheet's outline: torn up to `front`, still whole beyond it. */
+/**
+ * The sheet's outline: torn up to `front`, still whole beyond it.
+ *
+ * With `withFlap` the top-left corner has been taken off along the crease, so
+ * the edge starts part-way down the left side, climbs to where the crease
+ * meets the top, and only then runs its teeth to wherever the cut has got to.
+ */
 export function paperClip(W: number, front: number, withFlap?: boolean) {
   let top: Pt[]
-  if (withFlap) top = [...tearLine(0, W - FW), [W, T + TD + FH]]
-  else if (front <= 0) top = [[0, 0], [W, 0]]
+  if (withFlap) {
+    /* Cut to the crease the curl is actually rolling on, so the two cannot
+       drift apart: the sheet ends where the roll begins. */
+    const c = flapPath(front)
+    top = [[0, c.depth], [c.crest, T + TD], ...tearLine(c.crest, Math.min(front, W))]
+    if (front < W) top.push([front + 2, 0], [W, 0])
+  } else if (front <= 0) top = [[0, 0], [W, 0]]
   else
     top = [
       ...tearLine(0, Math.min(front, W)),
@@ -130,49 +164,66 @@ export function paperClip(W: number, front: number, withFlap?: boolean) {
 }
 
 /**
- * The curled corner.
+ * The curl, as the tear makes it.
  *
- * Not a fold. A fold is a crease with a flat triangle hanging off it, and at
- * this size that reads as a shape laid over the slip however it is shaded —
- * which is what it did. Paper this thin rolls: the corner wraps round on
- * itself into a cone, tight where the sheet is still holding it at either end
- * of the crease and open toward the foot, where the corner has the most
- * freedom.
+ * It is not a corner that appears once the cut is finished — it is the cut.
+ * The crease's top end *is* the tear front, so the roll extends rightward
+ * exactly as fast as the sheet is being freed, and its far end runs further
+ * down the left edge the further the cut has got: the more is torn, the lower
+ * it hangs.
  *
- * So the silhouette is swept rather than reflected. Walking the crease and
- * standing off it by how far the roll has opened at that point is the whole
- * of the geometry, and it is what gives the shape its taper — a reflection
- * can only ever give you the triangle back.
+ * The roll tapers the other way from a folded corner. It is tight to nothing
+ * at the front, where the paper is being released this instant and has had no
+ * time to come over at all, and fullest at the left edge, which was freed
+ * first and has been rolling the longest. That taper — a point at one end and
+ * the round mouth of a tube at the other — is the whole look of paper peeling.
  */
-export function flapPath(W: number, open = 1) {
-  const ax = W - FW
-  const ay = T + TD
-  const bx = W
-  const by = T + TD + FH
-  const L = Math.hypot(bx - ax, by - ay)
-  /** Along the crease, and across it. */
-  const nx = (bx - ax) / L
-  const ny = (by - ay) / L
-  const mx = -ny
-  const my = nx
+export function flapPath(front = PAPER_W) {
+  const W = PAPER_W
+  const f = Math.max(FW, Math.min(front, W))
+  const g = (f - FW) / (W - FW)
 
   /*
-   * How far the roll stands off the crease at its fullest. A little under
-   * where a flat fold would have put the corner, because paper going round a
-   * curve never reaches as far as paper going round a line.
+   * The crease: it reaches further along the top edge and further down the
+   * side the more of the sheet has been let go, and it is still a corner at
+   * the end of it — the teeth to the right of it are the cut, and they stay.
    */
-  const FULL = FW * Math.abs(ny) * 0.92
-  const H = FULL * open
+  const ax = W * (FW / W + (FX - FW / W) * g)
+  const ay = T + TD
+  const bx = 0
+  const by = T + TD + FH * (0.4 + 0.6 * g)
+  const L = Math.hypot(bx - ax, by - ay)
+  const nx = (bx - ax) / L
+  const ny = (by - ay) / L
+  /* Across the crease, on the side the paper lands — over the face of the
+     sheet, not off into space. */
+  let mx = -ny
+  let my = nx
+  if (-ax * mx > 0) {
+    mx = -mx
+    my = -my
+  }
+
+  /**
+   * How fat the tube is where it is fattest.
+   *
+   * Slim. Paper rolls on a tight radius, and a roll that stands a long way off
+   * its own crease is not a roll — it is a flap again, sweeping across the
+   * middle of the slip and covering what is printed there.
+   */
+  const H = FH * 0.5
 
   const N = 56
   const pts: [number, number][] = []
   for (let i = 0; i <= N; i++) {
     const s = i / N
-    /* Zero at both ends, where the sheet still has hold of it, and fullest
-       past the middle — skewed toward the foot rather than symmetric, which
-       is the difference between a cone and a lens. */
-    const k = Math.pow(Math.sin(Math.PI * Math.pow(s, 1.45)), 1.06)
-    pts.push([ax + nx * L * s + mx * H * k, ay + ny * L * s + my * H * k])
+    /*
+     * Zero at the front and full at the left edge, with the shoulder well
+     * along — which is what makes it a tube with a mouth rather than a lens.
+     */
+    const k = Math.pow(s, 1.7) * (1 - Math.pow(1 - s, 2.6))
+    const r = H * k
+    pts.push([ax + nx * L * s + mx * r, ay + ny * L * s + my * r])
   }
 
   const mid = { x: (ax + bx) / 2, y: (ay + by) / 2 }
@@ -182,16 +233,14 @@ export function flapPath(W: number, open = 1) {
       `M${ax.toFixed(2)} ${ay.toFixed(2)}` +
       pts.map(([x, y]) => `L${x.toFixed(2)} ${y.toFixed(2)}`).join('') +
       'Z',
-    /* Across the roll, not along the sheet: this is the axis everything about
-       the curl is shaded on. */
-    /* Pinned to the curl at full size, never to how far it has got. The
-       gradient is the roll's own shading, so as it unrolls it should reveal
-       more of it — scaling the axis with the opening would instead squeeze
-       the whole roll's worth of tone into whatever has appeared so far, and
-       the curl would arrive already lit as if it were finished. */
-    grad: { x1: mid.x, y1: mid.y, x2: mid.x + mx * FULL, y2: mid.y + my * FULL },
+    /* Across the roll, not along the sheet: the axis everything about the
+       curl is shaded on. */
+    grad: { x1: mid.x, y1: mid.y, x2: mid.x + mx * H, y2: mid.y + my * H },
     origin: `${mid.x}px ${mid.y}px`,
-    height: by + FULL + 30,
+    height: by + H * 2 + 30,
+    /** Where the crease meets the left edge, and the top. */
+    depth: by,
+    crest: ax,
   }
 }
 
@@ -204,19 +253,17 @@ export function flapPath(W: number, open = 1) {
  */
 export function FlapArt({
   id,
-  w = PAPER_W,
-  open = 1,
+  front = PAPER_W,
   paths,
 }: {
   id: string
-  w?: number
-  /** How far the corner has unrolled, 0 to 1. */
-  open?: number
-  /** Handed back so the printer can redraw them per frame as it opens. */
+  /** How far the tear has run, which is what the roll is made of. */
+  front?: number
+  /** Handed back so the printer can redraw them per frame as it grows. */
   paths?: (els: SVGPathElement[]) => void
 }) {
-  const f = flapPath(w, open)
-  const full = flapPath(w, 1)
+  const f = flapPath(front)
+  const full = flapPath(PAPER_W)
   return (
     <>
       <defs>
@@ -446,8 +493,8 @@ export function PrintRig({
      * that have to repaint eighteen clip paths are the two that cannot be
      * helped, not the eight hundred of the rip.
      */
-    const setClip = (c: string, topOnly = false) => {
-      const n = topOnly ? 2 : RIBS
+    const setClip = (c: string, rows = RIBS) => {
+      const n = Math.min(rows, RIBS)
       for (let i = 0; i < n; i++) {
         const f = faces.current[i]
         if (f) f.style.clipPath = c
@@ -543,9 +590,33 @@ export function PrintRig({
       const tension = slack
       cls('torn', true)
       const TEAR_MS = 820
+      /*
+       * The cut and the curl are one event, not two.
+       *
+       * The tear runs left to right, so the left corner is free long before
+       * the last tooth is cut — and a freed corner of paper this thin does not
+       * wait politely for the rest of the sheet. The moment the front passes
+       * the crease the corner starts coming over, and it is still unrolling
+       * while the cut finishes. It used to be a separate beat afterwards,
+       * which is why it read as something happening *to* the slip rather than
+       * as part of the same tear.
+       */
+      let curlAt = 0
       await frames((_dt, t) => {
         const e = easeIO(Math.min(1, t / TEAR_MS))
-        setClip(paperClip(W, e * W), true)
+        const front = e * W
+        if (!curlAt && front >= FW) {
+          curlAt = t
+          cls('flapped', true)
+        }
+        if (curlAt) {
+          const d = flapPath(front).d
+          for (const path of curl.current) path.setAttribute('d', d)
+        }
+        /* The fold reaches a good way down the side, so the clip has to be
+           written to every rib it crosses — not just the two the tear line
+           itself lives in. */
+        setClip(paperClip(W, front, curlAt > 0), curlAt ? 8 : 2)
         /* The freed left side sags as the tear front travels right. */
         sheet.current!.style.transform = `translateY(${e * 4}px) rotate(${-e * 3}deg)`
         setWave(tension * (1 + Math.sin(e * Math.PI) * 0.45))
@@ -553,31 +624,8 @@ export function PrintRig({
       })
       if (!live) return
 
-      // 3 · lets go: the corner curls over, the sheet drops and swings to rest
+      // 3 · and it drops, already cut and already curled
       setClip(paperClip(W, W, true))
-      cls('flapped', true)
-      /*
-       * It falls over rather than appearing. The origin is the middle of the
-       * crease, so this is the sheet hinging about the fold and dropping past
-       * flat before it settles — which is what a piece of paper that size does
-       * when it is no longer held.
-       */
-      /*
-       * It unrolls. It used to arrive as a finished shape that scaled and
-       * rotated into place, and a corner that swings in about its own middle
-       * is unmistakably a separate object being laid onto the page — it
-       * leaves the crease on the way. This is the curl's own geometry opening
-       * instead: both ends of the crease are fixed to the sheet at every
-       * frame, because they are the sheet, and what changes is only how far
-       * the paper between them has lifted.
-       */
-      const UNROLL_MS = 620
-      frames((_dt, t) => {
-        const q = Math.min(1, t / UNROLL_MS)
-        const d = flapPath(W, 1 - Math.pow(1 - q, 3)).d
-        for (const path of curl.current) path.setAttribute('d', d)
-        if (q >= 1) return false
-      })
       stub.current?.animate(
         [
           { transform: 'translateY(0)' },
@@ -630,7 +678,7 @@ export function PrintRig({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const f = flapPath(PAPER_W)
+  const f = flapPath()
 
   /*
    * The chain, built from the hem upwards so each slice can be handed the one
@@ -794,7 +842,7 @@ export function PrintRig({
                   the cut lets it go. */}
               <FlapArt
                 id="flap"
-                open={0}
+                front={FW}
                 paths={(els) => {
                   curl.current = els
                 }}

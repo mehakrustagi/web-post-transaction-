@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'framer-motion'
+import { FRAME_H, FRAME_W, useFrameFit } from './useFrameFit'
 import { Header } from './components/Header'
 import { PrintScene } from './scenes/PrintScene'
 import { type Beat, GiftScene } from './scenes/GiftScene'
@@ -7,8 +8,6 @@ import { PageScene, Ribbon, RibbonFold } from './scenes/PageScene'
 import { PageBelow } from './scenes/PageBelow'
 
 /** The design is a run of fixed frames; everything inside is in their coordinates. */
-const FRAME_W = 1282
-const FRAME_H = 915
 /** The last frame is not a frame but a page, and it runs past the viewport. */
 const PAGE_H = 2741
 /** How far up the page can travel before its foot is on screen. */
@@ -68,7 +67,7 @@ const SLIP_STEPS: Step[] = [...PRINT_STEPS, 'detached']
 const DARK_BEATS: Beat[] = ['gift', 'pickup', 'detail']
 
 export default function App() {
-  const scale = useFitScale()
+  const scale = useFrameFit()
   const still = useReducedMotion()
   /* Bumping this restarts the sequence, which is the whole replay mechanism. */
   const [run, setRun] = useState(0)
@@ -143,7 +142,7 @@ export default function App() {
 
   return (
     <main
-      className="grid min-h-screen cursor-pointer place-items-center bg-canvas"
+      className="h-screen w-screen cursor-pointer overflow-hidden bg-canvas"
       onClick={() => setRun((n) => n + 1)}
       onWheel={onWheel}
     >
@@ -246,21 +245,3 @@ export default function App() {
 }
 
 /** Keeps the fixed frame fully on screen whatever the window is. */
-function useFitScale() {
-  const [scale, setScale] = useState(1)
-
-  const measure = useCallback(() => {
-    const pad = 48
-    setScale(
-      Math.min(1, (window.innerWidth - pad) / FRAME_W, (window.innerHeight - pad) / FRAME_H),
-    )
-  }, [])
-
-  useEffect(() => {
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [measure])
-
-  return scale
-}

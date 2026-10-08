@@ -23,42 +23,45 @@ export const PAPER_TOP = MACHINE_Y + EXIT_Y
  * it has finished arriving.
  */
 export const AT = {
-  flag: 0.7,
-  namer: 0.95,
-  headline: 1.15,
-  lift: 2.2,
+  flag: 0.3,
+  namer: 0.5,
   /*
-   * It comes up under the heading while the heading is still settling, and
-   * lands as it lands — the lift runs 2.2 to 3.35 and this runs 2.8 to 3.33.
+   * The heading and the machine are one arrival, in the middle of the card.
    *
-   * It was at 4.2, which put it a second and a half behind the text: long
-   * enough that the card sat finished and empty waiting for it, which reads as
-   * the thing having failed to arrive. The reason it was pushed back was the
-   * two of them appearing to fight over the same piece of card, and that is
-   * not what overlapping in time does here — the machine occupies 329 down and
-   * the heading never comes below 296, so they share the moment without ever
-   * sharing the space.
+   * They used to be three separate moves — heading in the middle, group glides
+   * up, printer rises in underneath — which cost three and a half seconds
+   * before a single line printed, most of it spent rearranging a card nobody
+   * had been given a reason to look at twice. Same delay, same curve, same
+   * distance: that is what makes them read as one thing rather than as two
+   * that agree.
    */
-  machine: 2.8,
+  headline: 0.7,
   /*
-   * And only then does it print. This used to be *before* the machine, which
-   * meant the slip began feeding out of a box that had not turned up yet.
+   * And then the pair of them go up together, as the block they are.
    */
-  feed: 3.45,
+  rise: 1.45,
+  /*
+   * The slip starts coming out on that move, not after it. Waiting for the
+   * block to arrive before printing is a second of a settled card doing
+   * nothing; leaving on the same beat, the rise is what the printing starts
+   * from rather than something that has to finish first.
+   */
+  feed: 1.45,
 }
 
-/** How far down the group starts: enough to sit centred on the frame. */
-const HERO_DROP = 240
-const LIFT_S = 1.15
+/** Everything in this opening arrives on this, so that it arrives as a piece. */
+const ARRIVE = { duration: 0.72, ease: [0.22, 0.8, 0.3, 1] as const }
+/** How far anything lifts as it fades in. */
+const RISE = 18
 /**
- * The printer rises at the headline's speed, not its own. Both move straight
- * up the card a moment apart, and at different rates they read as two
- * unrelated things that happen to be moving — so the machine's travel is
- * divided by the heading's, and they share an ease.
+ * How far down the block starts.
+ *
+ * The heading, the country line and the machine together run from 138 to 431,
+ * so centring that on a 915 card puts its top at 311 — which is this much
+ * below where it ends up.
  */
-const RISE = 110
-const RISE_S = (RISE / HERO_DROP) * LIFT_S
-const EASE_UP = [0.5, 0, 0.2, 1] as const
+const DROP = 172
+const RISE_UP = { duration: 0.95, ease: [0.5, 0, 0.2, 1] as const }
 
 /**
  * The slip does not fly away — it recedes, into the exact spot the Cybertruck
@@ -132,28 +135,32 @@ export function PrintScene({
           transition={{ duration: 0.7, ease: 'easeInOut' }}
         />
       )}
+      {/*
+        The block: the heading, the country line and the machine under them.
+        They come in together in the middle of the card and go up together,
+        and the slip starts feeding on that same move — so what travels is one
+        object, and the printing is part of its arrival rather than something
+        that waits for it.
+      */}
+      <motion.div
+        className="absolute inset-0"
+        initial={{ y: DROP }}
+        animate={{ y: 0 }}
+        transition={{ delay: AT.rise, ...RISE_UP }}
+      >
       <motion.div
         className="absolute inset-0"
         animate={{ opacity: hero ? 1 : 0, y: hero ? 0 : -12 }}
         transition={{ duration: 0.45, ease: 'easeIn' }}
       >
         {/*
-          The three of them travel as one block. They are written in the
-          frame's own coordinates and the whole group is dropped to the middle
-          of the card to begin with, so the glide up is a single move rather
-          than three that have to be kept in step.
+          Written in the frame's own coordinates and left there. The group used
+          to be dropped to the middle of the card and glided up into this; what
+          that bought was a card rearranging itself, and what it cost was a
+          second and a half before anything could print.
         */}
-        <motion.div
-          className="absolute inset-0"
-          initial={{ y: HERO_DROP }}
-          animate={{ y: 0 }}
-          transition={{ delay: AT.lift, duration: LIFT_S, ease: EASE_UP }}
-        >
-        {/*
-          Inside the group, so it goes off exactly where the line is rather
-          than where the line ends up — the three of them are still sitting in
-          the middle of the card when this happens.
-        */}
+        <div className="absolute inset-0">
+        {/* Centred on the line, which is now simply where the line is. */}
         <SpeedBurst at={AT.headline} cx={642} cy={274} />
 
         <motion.div
@@ -207,25 +214,26 @@ export function PrintScene({
         <motion.div
           className="absolute z-20 flex flex-col items-center overflow-hidden"
           style={{ left: 351, top: 252, width: 582, height: 44 }}
-          initial={{ opacity: 0, y: 18, filter: 'blur(6px)' }}
+          initial={{ opacity: 0, y: RISE, filter: 'blur(6px)' }}
           animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ delay: AT.headline, duration: 0.72, ease: [0.22, 0.8, 0.3, 1] }}
+          transition={{ delay: AT.headline, ...ARRIVE }}
         >
           <p className="whitespace-nowrap font-display text-[36px] font-medium leading-[44px] text-black">
             {INTRO.headline}
           </p>
         </motion.div>
-        </motion.div>
+        </div>
       </motion.div>
 
       <motion.div
         className="absolute left-0 w-full"
         style={{ top: MACHINE_Y, height: MACHINE_H }}
-        /* Straight up from under the headline into its place, at the same
-           speed it travelled, and still on its way when the paper starts. */
+        /* The heading's own arrival, to the millisecond and to the pixel. Any
+           difference between the two — a longer rise, a different curve — is
+           the difference that stops them being one object. */
         initial={{ opacity: 0, y: RISE }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: AT.machine, duration: RISE_S, ease: EASE_UP }}
+        transition={{ delay: AT.headline, ...ARRIVE }}
       >
         <PrintRig
           onPrinted={onPrinted}
@@ -236,6 +244,7 @@ export function PrintScene({
           away={AWAY}
           onRest={onRest}
         />
+      </motion.div>
       </motion.div>
     </div>
   )

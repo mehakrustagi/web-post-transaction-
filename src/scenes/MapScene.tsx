@@ -157,7 +157,7 @@ export function MapScene({
     }
   }, [orbed, spin, tint, still])
 
-  const flap = useMemo(() => flapPath(PAPER_W), [])
+  const flap = useMemo(() => flapPath(), [])
   const hub = place(VIETNAM.lat, VIETNAM.lng)
   const routes = useMemo(
     () => ROUTES.map((r) => arc(place(r.lat, r.lng), hub, MAP_W, MAP_H)),

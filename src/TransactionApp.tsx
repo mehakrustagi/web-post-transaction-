@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'framer-motion'
+import { FRAME_H, FRAME_W, useFrameFit } from './useFrameFit'
 import { Header } from './components/Header'
 import { PrintScene } from './scenes/PrintScene'
 import { HANDOVER } from './scenes/OrbScene'
@@ -9,8 +10,6 @@ import { Ribbon } from './scenes/PageScene'
 import { SparklesProvider } from './components/ui/sparkles'
 import { MAP_OFFER } from './content'
 
-const FRAME_W = 1282
-const FRAME_H = 915
 const FLOOR = -(MAP_PAGE_H - FRAME_H)
 
 /**
@@ -67,7 +66,7 @@ const clamp = (v: number) => Math.min(0, Math.max(FLOOR, v))
 const stopAt = (y: number): MapStop => (y > -300 ? 'page' : y > -740 ? 'explore' : 'more')
 
 export default function TransactionApp() {
-  const scale = useFitScale()
+  const scale = useFrameFit()
   const still = useReducedMotion()
   const [run, setRun] = useState(0)
   const [step, setStep] = useState<Step>('printing')
@@ -152,19 +151,21 @@ export default function TransactionApp() {
   return (
     <SparklesProvider>
       <main
-        className="grid min-h-screen cursor-pointer place-items-center bg-canvas"
+        className="h-screen w-screen cursor-pointer overflow-hidden bg-canvas"
         onClick={() => setRun((n) => n + 1)}
         onWheel={onWheel}
       >
-        {/* The frame inside is absolute, so this has to be what it is absolute to. */}
+        {/* Centred and scaled to cover, so the design fills the window instead
+          of sitting on it as a card. */}
+      <div className="relative h-full w-full select-none overflow-hidden">
         <div
-          className="relative select-none"
-          style={{ width: FRAME_W * scale, height: FRAME_H * scale }}
+          className="absolute left-1/2 top-1/2 overflow-hidden"
+          style={{
+            width: FRAME_W,
+            height: FRAME_H,
+            transform: `translate(-50%, -50%) scale(${scale})`,
+          }}
         >
-          <div
-            className="absolute left-0 top-0 origin-top-left overflow-hidden rounded-[40px]"
-            style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${scale})` }}
-          >
             {/* The card itself, which this route owns so the colour can go
                 between it and the paper standing on it. */}
             <div
@@ -259,16 +260,3 @@ export default function TransactionApp() {
   )
 }
 
-function useFitScale() {
-  const [scale, setScale] = useState(1)
-  const measure = useCallback(() => {
-    const pad = 48
-    setScale(Math.min(1, (window.innerWidth - pad) / FRAME_W, (window.innerHeight - pad) / FRAME_H))
-  }, [])
-  useEffect(() => {
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [measure])
-  return scale
-}

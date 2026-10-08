@@ -32,11 +32,11 @@ const RISE_MS = 900
  * page that you notice having been there, not an event. Full weight is for the
  * launch, which is when it does have something to say.
  */
-const COOK = 0.82
+const COOK = 0.72
 
 /** How its leading edge dissolves into the card in front of it. */
 const LEAD =
-  'transparent 0px, rgba(0,0,0,0.10) 90px, rgba(0,0,0,0.34) 190px, rgba(0,0,0,0.72) 290px, black 380px'
+  'transparent 0px, rgba(0,0,0,0.07) 120px, rgba(0,0,0,0.26) 250px, rgba(0,0,0,0.6) 390px, black 540px'
 const FEATHER = `linear-gradient(to bottom, ${LEAD}, black 100%)`
 /**
  * And how its trailing edge dissolves into the page behind it.
@@ -292,7 +292,12 @@ export function BloomWash({
             className="absolute inset-0"
             style={{
               backgroundImage:
-                'linear-gradient(104deg, #118388 0%, #0F7080 34%, #4270D3 71%, #0E528D 100%)',
+                /* The stops, taken most of the way toward white. At their own
+                   weight an opaque sheet of them crossing the card is a slab —
+                   the colour has to be something the card passes into, which
+                   means it has to have air in it. The relationships between the
+                   four are what read as the gradient, not their density. */
+                'linear-gradient(104deg, #8CBFC2 0%, #8AB4BD 34%, #A8BBE4 71%, #8AA5C4 100%)',
             }}
             initial={{ opacity: 0 }}
             animate={{ opacity: fired ? 1 : 0 }}
