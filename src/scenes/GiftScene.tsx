@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { GIFT, PAGE } from '../content'
 import { TextReveal } from '../components/TextReveal'
+import { ShimmerText } from '../components/ShimmerText'
 import { TextStage } from '../components/TextStage'
 
 const A = '/assets'
@@ -239,6 +240,15 @@ export function GiftScene({ beat }: { beat: Beat }) {
       >
         {thanks ? (
           <span className="block w-[520px] text-white">{GIFT.thanks}</span>
+        ) : panel ? (
+          /*
+             Once the line has finished revealing it has nothing left to do,
+             and it sits at the top of the frame while the panel underneath is
+             still arriving. The sweep carries on across it instead — the same
+             light the `0/3 friends` figure is set in, so the heading and the
+             number the panel is counting read as lit by one thing.
+          */
+          <ShimmerText text={GIFT.pickup} className="min-w-full" />
         ) : (
           <TextReveal text={GIFT.pickup} className="min-w-full" stars={beat === 'pickup'} />
         )}

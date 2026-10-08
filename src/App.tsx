@@ -10,9 +10,8 @@ import { HANDOVER } from './scenes/OrbScene'
 
 /** The design is a run of fixed frames; everything inside is in their coordinates. */
 /** The last frame is not a frame but a page, and it runs past the viewport. */
-const PAGE_H = 2741
 /** How far up the page can travel before its foot is on screen. */
-const FLOOR = -(PAGE_H - FRAME_H)
+const FLOOR = -620
 
 /**
  * The sequence after the printer has finished, in seconds from the moment the
@@ -43,16 +42,20 @@ const BEATS = [
   { at: 7.25, step: 'page' },
   /* The page carries on below the fold, so it takes itself down it. */
   { at: 9.75, step: 'offers' },
-  { at: 12.75, step: 'explore' },
-  { at: 15.35, step: 'more' },
 ] as const
 
 /** How far the page has scrolled at each stop, in frame pixels. */
+/**
+ * One stop, and it ends on the eSIM card.
+ *
+ * The page carries on below it, but the tour does not: everything the sequence
+ * is introducing is on screen by here, and the two stops past this were the
+ * page scrolling for its own sake. The floor matches, so a hand on the wheel
+ * stops where the tour does rather than running off into the rest of the page.
+ */
 const SCROLL: Record<string, number> = {
   page: 0,
   offers: -620,
-  explore: -1300,
-  more: -1830,
 }
 
 /**
@@ -60,10 +63,9 @@ const SCROLL: Record<string, number> = {
  * the clock — so a block still arrives when the page is scrolled by hand past
  * the point the tour would have stopped at.
  */
-const STOPS = ['page', 'offers', 'explore', 'more'] as const
+const STOPS = ['page', 'offers'] as const
 type Stop = (typeof STOPS)[number]
-const stopAt = (y: number): Stop =>
-  y > -400 ? 'page' : y > -1000 ? 'offers' : y > -1600 ? 'explore' : 'more'
+const stopAt = (y: number): Stop => (y > -400 ? 'page' : 'offers')
 
 const clamp = (v: number) => Math.min(0, Math.max(FLOOR, v))
 

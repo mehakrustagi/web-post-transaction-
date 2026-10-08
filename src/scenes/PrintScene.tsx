@@ -2,7 +2,6 @@ import { motion } from 'framer-motion'
 import { INTRO } from '../content'
 import { PAPER_H } from '../components/Receipt'
 import { EXIT_Y, MACHINE_H, PrintRig, REST_Y } from '../components/PrintRig'
-import { EMERGES } from './GiftScene'
 import { SpeedBurst } from '../components/SpeedBurst'
 
 const A = '/assets'
@@ -80,11 +79,20 @@ const RISE_UP = { duration: 0.95, ease: [0.5, 0, 0.2, 1] as const }
  * below the slot, and the fall has already carried it REST_Y further down.
  */
 const AWAY_SCALE = 0.34
+const FRAME_MID = 915 / 2
 const REST_CX = 641
 const REST_CY = PAPER_TOP + PAPER_H / 2
+/**
+ * And it goes to the middle of the frame.
+ *
+ * It used to recede into the exact spot the vehicle comes out of, which is a
+ * good idea when the vehicle is the next thing you see — but the slip is the
+ * only thing on the card by then, and anything that leaves off-centre leaves
+ * the frame lopsided for the beat before the gift arrives.
+ */
 const AWAY = {
-  x: EMERGES.x - REST_CX,
-  y: EMERGES.y - REST_CY - REST_Y * AWAY_SCALE,
+  x: 641 - REST_CX,
+  y: FRAME_MID - REST_CY - REST_Y * AWAY_SCALE,
   scale: AWAY_SCALE,
 }
 
