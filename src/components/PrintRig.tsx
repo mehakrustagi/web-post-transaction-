@@ -281,8 +281,6 @@ export function flapPath(front = PAPER_W) {
         angle: (Math.atan2(my, mx) * 180) / Math.PI,
       }
     })(),
-    /** Which way the roll has lifted, for what it throws behind it. */
-    lift: { x: -mx, y: -my },
     /**
      * The sheet that is still there, which is the only thing a shadow can land
      * on.
@@ -362,14 +360,11 @@ export function FlapArt({
         <linearGradient id={`${id}Cast`} gradientUnits="userSpaceOnUse" {...full.castGrad}>
           <stop offset="0" stopColor="#1A1D2B" stopOpacity="0" />
           <stop offset=".42" stopColor="#1A1D2B" stopOpacity="0" />
-          <stop offset=".62" stopColor="#1A1D2B" stopOpacity=".3" />
+          <stop offset=".62" stopColor="#1A1D2B" stopOpacity=".36" />
           <stop offset="1" stopColor="#1A1D2B" stopOpacity="0" />
         </linearGradient>
         <filter id={`${id}Soft`} x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur stdDeviation="6" />
-        </filter>
-        <filter id={`${id}Back`} x="-45%" y="-45%" width="190%" height="190%">
-          <feGaussianBlur stdDeviation="11" />
         </filter>
         {/* The inside of the tube. Darkest where it disappears round the far
             side, brightest on the near lip, which is the only light that gets
@@ -397,19 +392,14 @@ export function FlapArt({
           if (g && group) group(g)
         }}
       >
-        {/* Both of these land on the sheet or not at all. */}
+        {/*
+          On the sheet or not at all — and it has nothing to cut at the crease,
+          because the gradient it is filled with is fully transparent where the
+          roll meets the paper. A shadow that is solid at that line gets sliced
+          into a straight edge by this clip, which is a rectangle drawn across
+          the corner; this one fades to nothing before it reaches it.
+        */}
         <g clipPath={`url(#${id}Paper)`}>
-          {/* Behind it, on the side the paper has lifted away from — the roll
-              stands clear of the sheet there and what is still underneath it
-              goes dark. */}
-          <path
-            data-back
-            d={f.d}
-            fill="#1A1D2B"
-            opacity=".22"
-            filter={`url(#${id}Back)`}
-            transform={`translate(${(f.lift.x * 13).toFixed(2)} ${(f.lift.y * 13).toFixed(2)})`}
-          />
           <path data-cast d={f.cast} fill={`url(#${id}Cast)`} filter={`url(#${id}Soft)`} />
         </g>
         <path data-body d={f.d} fill={`url(#${id}Roll)`} />
@@ -631,12 +621,6 @@ export function PrintRig({
       g.querySelectorAll('[data-body]').forEach((el) => el.setAttribute('d', c.d))
       g.querySelector('[data-cast]')?.setAttribute('d', c.cast)
       g.querySelector('[data-clip]')?.setAttribute('d', c.clip)
-      const back = g.querySelector('[data-back]')
-      back?.setAttribute('d', c.d)
-      back?.setAttribute(
-        'transform',
-        `translate(${(c.lift.x * 13).toFixed(2)} ${(c.lift.y * 13).toFixed(2)})`,
-      )
       const m = g.querySelector('ellipse')
       if (!m) return
       m.setAttribute('cx', c.mouth.cx.toFixed(2))
