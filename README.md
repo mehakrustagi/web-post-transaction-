@@ -21,6 +21,21 @@ npm run dev
 
 Click anywhere to replay.
 
+## The variants
+
+Three sequences share the opening, the printer and the tear, and differ in what
+becomes of the slip:
+
+| Route | What happens to the receipt |
+|-------|------------------------------|
+| `/` | It recedes into the point the Cybertruck comes out of |
+| `/map` | It is fed through a seam and comes out the other side as the world |
+| `/orb` | It comes apart into its own dots, which gather into the orb |
+
+`/map` and `/orb` land on the same page (438:16680) and use the same `OrbScene`
+mechanic for the gather — every dot carries two positions and slides between
+them. The only difference is where the dots start: the world, or the sheet.
+
 ## The map variant
 
 `/map` is a second sequence that shares the opening and replaces everything

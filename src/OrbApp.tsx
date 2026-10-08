@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'framer-motion'
 import { Header } from './components/Header'
 import { PrintScene } from './scenes/PrintScene'
-import { MapScene, type MapBeat } from './scenes/MapScene'
+import { OrbScene, type OrbBeat } from './scenes/OrbScene'
 import { MAP_PAGE_H, MAP_SCROLL, MAP_STOPS, MapPage, type MapStop } from './scenes/MapPage'
 import { Ribbon } from './scenes/PageScene'
 import { SparklesProvider } from './components/ui/sparkles'
@@ -14,33 +14,31 @@ const FLOOR = -(MAP_PAGE_H - FRAME_H)
 
 /**
  * The sequence after the printer has finished, in seconds from the moment the
- * slip comes to rest. The machine leaves, the slip turns on its side, a line
- * walks across the card printing the world behind it, the routes draw, and the
- * dots gather into the orb — which then takes its place in the card.
+ * slip comes to rest. The machine leaves, the slip comes apart into its own
+ * dots, and they gather into the orb — which then takes its place in the card.
+ * The map variant's world is simply not in it.
  */
 const BEATS = [
   { at: 0.5, step: 'clearing' },
-  { at: 1.1, step: 'turn' },
-  { at: 2.6, step: 'scan' },
-  { at: 5.6, step: 'routes' },
-  { at: 9.8, step: 'orb' },
-  { at: 12.2, step: 'card' },
+  { at: 1.2, step: 'crumble' },
+  { at: 3.2, step: 'orb' },
+  { at: 5.6, step: 'card' },
   /* Once it has settled it stops being a thing flying over the page and
      becomes the card's artwork, drawn behind the card's own text. */
-  { at: 14.1, step: 'landed' },
-  { at: 15.6, step: 'explore' },
-  { at: 18.8, step: 'more' },
+  { at: 7.5, step: 'landed' },
+  { at: 9.0, step: 'explore' },
+  { at: 12.2, step: 'more' },
 ] as const
 
 type Step = (typeof BEATS)[number]['step'] | 'printing'
 
-/** And while one of these is, the map is. */
-const MAP_BEATS: MapBeat[] = ['turn', 'scan', 'routes', 'orb', 'card']
+/** And while one of these is, the dots are. */
+const ORB_BEATS: OrbBeat[] = ['crumble', 'orb', 'card']
 
 const clamp = (v: number) => Math.min(0, Math.max(FLOOR, v))
 const stopAt = (y: number): MapStop => (y > -300 ? 'page' : y > -740 ? 'explore' : 'more')
 
-export default function MapApp() {
+export default function OrbApp() {
   const scale = useFitScale()
   const still = useReducedMotion()
   const [run, setRun] = useState(0)
@@ -88,7 +86,7 @@ export default function MapApp() {
     timers.current = BEATS.map((b) => window.setTimeout(() => setStep(b.step), b.at * 1000))
   }, [])
 
-  const mapping = MAP_BEATS.includes(step as MapBeat)
+  const dusting = ORB_BEATS.includes(step as OrbBeat)
   const landed = step === 'landed' || step in MAP_SCROLL
   const page = step === 'card' || landed
   /*
@@ -98,7 +96,7 @@ export default function MapApp() {
    * entrance they were written with.
    */
   const showPrint = !page
-  const beat: MapBeat = mapping ? (step as MapBeat) : page ? 'card' : 'turn'
+  const beat: OrbBeat = dusting ? (step as OrbBeat) : page ? 'card' : 'rest'
 
   return (
     <SparklesProvider>
@@ -129,9 +127,9 @@ export default function MapApp() {
                   hero={!page}
                   leaving={step !== 'printing'}
                   detached={false}
-                  /* From `turn` on the slip belongs to `MapScene`, which
+                  /* From `crumble` on the slip belongs to `OrbScene`, which
                      starts it exactly where this one left it. */
-                  handOver={mapping}
+                  handOver={dusting}
                   onRest={onRest}
                 />
               </motion.div>
@@ -155,7 +153,7 @@ export default function MapApp() {
             <MapPage at={stop} show={page} landed={landed} />
             <Ribbon show={page} label={MAP_OFFER.ribbon} />
 
-            {(mapping || page) && !landed && <MapScene key={`map-${run}`} beat={beat} />}
+            {(dusting || page) && !landed && <OrbScene key={`orb-${run}`} beat={beat} />}
           </motion.div>
 
           <Header dark={false} onPage={page} />

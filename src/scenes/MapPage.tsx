@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { EXPLORE, LINKS, MAP_OFFER, MAP_RAIL_STEPS, MAP_RAIL_TICKS } from '../content'
 import { CountryCard, OfferCard } from './PageBelow'
+import { CardOrb } from '../features/map/CardOrb'
 import { PageScene } from './PageScene'
 
 const A = '/assets'
@@ -20,7 +21,16 @@ export const MAP_SCROLL: Record<MapStop, number> = { page: 0, explore: -560, mor
  * is its artwork. Everything below is unchanged, which is the point — only the
  * thing that was being introduced is different.
  */
-export function MapPage({ at, show }: { at: MapStop; show: boolean }) {
+export function MapPage({
+  at,
+  show,
+  landed = false,
+}: {
+  at: MapStop
+  show: boolean
+  /** The orb has finished travelling and is this card's artwork now. */
+  landed?: boolean
+}) {
   const seen = (stop: MapStop) => MAP_STOPS.indexOf(at) >= MAP_STOPS.indexOf(stop)
 
   const rise = (i: number, stop: MapStop) => ({
@@ -47,7 +57,7 @@ export function MapPage({ at, show }: { at: MapStop; show: boolean }) {
           {...rise(1, 'page')}
         >
           {/* No artwork: the orb is flying into that slot from outside. */}
-          <OfferCard offer={MAP_OFFER} art={false} />
+          <OfferCard offer={MAP_OFFER} art={false} slot={<CardOrb show={landed} />} />
         </motion.div>
 
         <Rule top={735} show={seen('explore') && show} />

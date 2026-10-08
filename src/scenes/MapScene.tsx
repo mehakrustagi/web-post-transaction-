@@ -148,8 +148,10 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
     <motion.div
       className="absolute inset-0"
       initial={false}
+      /* Ahead of the orb, so nothing of it is outside the card by the time it
+         is over it. */
       animate={{ clipPath: carded ? CARD_CLIP : NO_CLIP }}
-      transition={{ duration: SETTLE_S * 0.8, ease: [0.5, 0, 0.2, 1] }}
+      transition={{ duration: SETTLE_S * 0.55, ease: [0.4, 0, 0.2, 1] }}
     >
       {/*
         Left of the seam: the slip. The clip only comes on once it has turned,
@@ -240,10 +242,14 @@ export function MapScene({ beat, onOrb }: { beat: MapBeat; onOrb?: () => void })
             style={{ left: -TRAVEL, top: CANVAS_TOP }}
             initial={false}
             animate={orbTo}
-            transition={{
-              duration: carded ? SETTLE_S : orbed ? GATHER_S : CENTRE_S,
-              ease: [0.5, 0, 0.2, 1],
-            }}
+            /* It drops into the slot rather than arriving at it: a spring
+               with enough mass to settle, which is what makes the collapse
+               read as the orb finding its place and not as a cut. */
+            transition={
+              carded
+                ? { type: 'spring', stiffness: 86, damping: 17, mass: 1.15 }
+                : { duration: orbed ? GATHER_S : CENTRE_S, ease: [0.5, 0, 0.2, 1] }
+            }
           >
             <WorldDots
               width={MAP_W}

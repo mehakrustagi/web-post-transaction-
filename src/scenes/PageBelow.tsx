@@ -117,16 +117,20 @@ function Rule({ top, show }: { top: number; show: boolean }) {
 export function OfferCard({
   offer,
   art = true,
+  slot,
 }: {
   offer: Offer
   /** False when something outside the card is flying into its artwork slot. */
   art?: boolean
+  /** What goes in that slot instead. Drawn first, so the card's text is over it. */
+  slot?: React.ReactNode
 }) {
   return (
     <div
       className="relative overflow-hidden rounded-[24px]"
       style={{ width: 785, height: 300, backgroundImage: offer.bg }}
     >
+      {slot}
       {art && (
       <img
         src={`${A}/${offer.art.src}`}

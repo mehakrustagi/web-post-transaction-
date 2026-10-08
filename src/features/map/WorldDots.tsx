@@ -35,6 +35,8 @@ export function WorldDots({
   reveal,
   morph,
   spin,
+  source = 'map',
+  sheet,
   colour = '#9aa0a6',
   orbFrom = '#d1d1d1',
   orbTo = '#666666',
@@ -43,8 +45,15 @@ export function WorldDots({
   height: number
   /** 0 to 1 across the map's width: dots left of this have been printed. */
   reveal: MotionValue<number>
-  /** 0 is the map, 1 is the orb. */
+  /** 0 is wherever the dots start, 1 is the orb. */
   morph: MotionValue<number>
+  /**
+   * What the dots are before they are a sphere. The world, or the sheet the
+   * receipt was printed on — which disintegrates into them.
+   */
+  source?: 'map' | 'sheet'
+  /** The sheet's box on the canvas, when that is where they start. */
+  sheet?: { x: number; y: number; w: number; h: number }
   /** Turns of the sphere, in radians. */
   spin: MotionValue<number>
   colour?: string
@@ -120,6 +129,17 @@ export function WorldDots({
     const cy = height / 2
     const top = cy - mapH / 2
     const radius = Math.min(width, height) * 0.42
+    /*
+     * The sheet's dots are scattered over its rectangle rather than ruled into
+     * a grid — a grid of this many points reads as a screen door, and what is
+     * wanted is paper coming apart. Deterministic, so a redraw does not
+     * reshuffle them mid-flight.
+     */
+    const box = sheet ?? { x: cx - width / 4, y: cy - height / 4, w: width / 2, h: height / 2 }
+    const rnd = (i: number, k: number) => {
+      const v = Math.sin(i * 127.1 + k * 311.7) * 43758.5453
+      return v - Math.floor(v)
+    }
 
     let frame = 0
     const draw = () => {
@@ -146,8 +166,15 @@ export function WorldDots({
         if (mx > rev) continue
 
         const my = MAP_DOTS[i * 2 + 1]
-        let x = mx * width
-        let y = top + my * width
+        let x: number
+        let y: number
+        if (source === 'sheet') {
+          x = box.x + rnd(i, 1) * box.w
+          y = box.y + rnd(i, 2) * box.h
+        } else {
+          x = mx * width
+          y = top + my * width
+        }
         let dim = 1
 
         if (m > 0) {
@@ -189,7 +216,7 @@ export function WorldDots({
 
     draw()
     return () => cancelAnimationFrame(frame)
-  }, [width, height, reveal, morph, spin, colour, orbFrom, orbTo])
+  }, [width, height, reveal, morph, spin, colour, orbFrom, orbTo, source, sheet])
 
   return <canvas ref={canvas} style={{ width, height, display: 'block' }} />
 }
