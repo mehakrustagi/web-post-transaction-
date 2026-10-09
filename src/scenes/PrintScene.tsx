@@ -64,12 +64,21 @@ const RISE = 18
  */
 const DROP = 172
 /**
- * How far the pair of them lift to sit centred once the heading has gone.
+ * Where the slip goes once it is nobody's but its own.
  *
- * The machine's top is at 329 and the slip's foot reaches about 854, so the
- * block's own middle is at 591 against the frame's 457.
+ * Not the block's middle — the slip's. By the time this runs the heading and
+ * the machine have both gone, so the only thing being centred is the sheet,
+ * and its own centre sits at 616 against the frame's 457.
  */
-const CENTRE_Y = -134
+const CENTRE_Y = -159
+/**
+ * And how much bigger it gets, about that same point.
+ *
+ * Scaled around the slip's own centre rather than the frame's, so it grows
+ * where it stands instead of drifting while it grows.
+ */
+const CENTRE_SCALE = 1.18
+const CENTRE_ORIGIN = '50% 67%'
 const RISE_UP = { duration: 0.95, ease: [0.5, 0, 0.2, 1] as const }
 
 /**
@@ -193,9 +202,14 @@ export function PrintScene({
       */}
       <motion.div
         className="absolute inset-0"
+        style={{ transformOrigin: CENTRE_ORIGIN }}
         initial={{ y: DROP }}
-        animate={{ y: centre ? CENTRE_Y : 0 }}
-        transition={centre ? { duration: 0.75, ease: [0.4, 0, 0.2, 1] } : { delay: AT.rise, ...RISE_UP }}
+        animate={{ y: centre ? CENTRE_Y : 0, scale: centre ? CENTRE_SCALE : 1 }}
+        transition={
+          centre
+            ? { duration: 0.85, ease: [0.3, 0, 0.2, 1] }
+            : { delay: AT.rise, ...RISE_UP }
+        }
       >
       <motion.div
         className="absolute inset-0"
