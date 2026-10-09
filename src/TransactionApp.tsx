@@ -4,7 +4,7 @@ import { FRAME_H, FRAME_W, useFrameFit } from './useFrameFit'
 import { Header } from './components/Header'
 import { PrintScene } from './scenes/PrintScene'
 import { HANDOVER } from './scenes/OrbScene'
-import { EDGE_H, WashEdge } from './scenes/BloomWash'
+import { EDGE_H, WashEdge, WashTrace } from './scenes/BloomWash'
 import { MAP_PAGE_H, MAP_SCROLL, MAP_STOPS, MapPage, type MapStop } from './scenes/MapPage'
 import { Ribbon } from './scenes/PageScene'
 import { SparklesProvider } from './components/ui/sparkles'
@@ -260,7 +260,7 @@ export default function TransactionApp() {
                 ease: firing ? [0.42, 0, 0.18, 1] : [0.33, 0, 0.2, 1],
               }}
             >
-              <WashEdge show={cooking} />
+              <WashEdge show={cooking} full={firing} />
 
               {/*
                 The surface itself, opaque from the moment it starts moving.
@@ -274,18 +274,11 @@ export default function TransactionApp() {
                 className="absolute left-0 top-0 w-full bg-canvas"
                 style={{ height: MAP_PAGE_H }}
               />
-            <motion.div className="absolute inset-0" style={{ y }}>
-              <motion.div
-                className="absolute left-0 top-0 w-full bg-canvas"
-                style={{ height: MAP_PAGE_H }}
-                animate={{ opacity: page ? 1 : 0 }}
-                /* Snappier than the orb page's nine tenths of a second. There
-                   it had the gathering to hide behind; here it is happening
-                   under a wash that is already leaving. */
-                transition={{ duration: 0.45, ease: 'easeInOut' }}
-              />
 
-              <MapPage at={stop} show={page} landed={landed} spin={spin} canvas={HANDOVER} />
+              {/* What the page keeps of what brought it in. */}
+              <WashTrace />
+            <motion.div className="absolute inset-0" style={{ y }}>
+              <MapPage at={stop} show={page} landed={landed} spin={spin} canvas={HANDOVER} fill={false} />
               <Ribbon show={page} label={MAP_OFFER.ribbon} />
             </motion.div>
             </motion.div>

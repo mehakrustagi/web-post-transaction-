@@ -26,8 +26,18 @@ export function PageScene({
   ticks = RAIL_TICKS,
   steps = RAIL_STEPS,
   height = 2741,
+  fill = true,
 }: {
   show: boolean
+  /**
+   * Whether this paints the page it sits on.
+   *
+   * It normally does. `/transaction` takes it over, because the surface that
+   * carries the page in already has an opaque background of its own and a
+   * trace of the wash lying on it — and a scene that paints its own is one
+   * layer, with nothing underneath it to show.
+   */
+  fill?: boolean
   /**
    * How tall the page this is laid out on actually is.
    *
@@ -55,7 +65,7 @@ export function PageScene({
    */
   return (
     <motion.div
-      className="absolute left-0 top-0 w-full overflow-hidden rounded-[40px] bg-canvas"
+      className={`absolute left-0 top-0 w-full overflow-hidden rounded-[40px]${fill ? ' bg-canvas' : ''}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: show ? 1 : 0 }}
       transition={{ duration: 0.9, ease: 'easeInOut' }}

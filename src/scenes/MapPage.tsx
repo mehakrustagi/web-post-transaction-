@@ -27,8 +27,11 @@ export function MapPage({
   landed = false,
   spin,
   canvas,
+  fill = true,
 }: {
   at: MapStop
+  /** Passed through: whether the page paints its own background. */
+  fill?: boolean
   show: boolean
   /** The orb has finished travelling and is this card's artwork now. */
   landed?: boolean
@@ -47,7 +50,7 @@ export function MapPage({
 
   return (
     <>
-      <PageScene show={show} lede={false} ticks={MAP_RAIL_TICKS} steps={MAP_RAIL_STEPS} height={MAP_PAGE_H} />
+      <PageScene show={show} lede={false} ticks={MAP_RAIL_TICKS} steps={MAP_RAIL_STEPS} height={MAP_PAGE_H} fill={fill} />
 
       <div className="absolute left-0 top-0 w-full" style={{ height: MAP_PAGE_H }}>
         <motion.p
