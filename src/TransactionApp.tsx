@@ -209,8 +209,11 @@ export default function TransactionApp() {
                      over the top of it, so anything it did here would be work
                      nobody can see — and a card fading under an opaque wash is
                      exactly the kind of second movement that reads as clutter. */
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.01 }}
+                  /* Carried off rather than cut. The dome is over it when
+                     this runs, so what little shows reads as the colour
+                     taking it with it. */
+                  exit={{ opacity: 0, y: -70 }}
+                  transition={{ duration: 0.45, ease: [0.5, 0, 0.3, 1] }}
                 >
                   <PrintScene
                     hero={!page}
@@ -233,8 +236,18 @@ export default function TransactionApp() {
             <motion.div
               className="absolute inset-0 z-[2]"
               initial={false}
-              animate={{ opacity: page ? 1 : 0 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
+              /*
+               * It comes up a little as it arrives. The swap itself happens
+               * under the dome's core, so this is not how the page gets here
+               * — it is the tail of the move you actually see as the colour
+               * clears, and it is what makes the screen feel like it went
+               * with the wash rather than being replaced behind it.
+               */
+              animate={{ opacity: page ? 1 : 0, y: page ? 0 : 44 }}
+              transition={{
+                opacity: { duration: 0.18, ease: 'easeOut' },
+                y: { duration: 0.95, ease: [0.2, 0.7, 0.25, 1] },
+              }}
             >
             <motion.div className="absolute inset-0" style={{ y }}>
               <motion.div
