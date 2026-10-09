@@ -65,21 +65,21 @@ const GONE = -EDGE_H + 260
  * before it repeats itself, and dropping any of them straightens a bend.
  */
 const SPECTRUM = `linear-gradient(95deg,
-  #3A3C6D 0%,
-  #2F3486 7%,
-  #3D48B5 15%,
-  #4963D6 23%,
-  #4F7EE4 31%,
-  #5A8EE8 38%,
-  #7489E9 45%,
-  #9974E5 53%,
-  #BE5ACD 61%,
-  #D84E9E 69%,
-  #E5576D 77%,
-  #EC7956 84%,
-  #EEA465 91%,
-  #F0CC95 97%,
-  #F3E7CC 100%)`
+  #9C9EB6 0%,
+  #979AC2 7%,
+  #9EA4DA 15%,
+  #A4B1EA 23%,
+  #A7BEF2 31%,
+  #ACC6F4 38%,
+  #BAC4F4 45%,
+  #CCBAF2 53%,
+  #DEACE6 61%,
+  #ECA6CE 69%,
+  #F2ABB6 77%,
+  #F6BCAA 84%,
+  #F6D2B2 91%,
+  #F8E6CA 97%,
+  #F9F3E6 100%)`
 
 /**
  * And the shape of it.
@@ -104,7 +104,7 @@ const DOME = `radial-gradient(1400px 600px at 50% 50%,
   rgba(0,0,0,0) 100%)`
 
 /** How much of itself it shows while the printer is still working. */
-const REST = 0.26
+const REST = 0.42
 
 /**
  * Specks riding the edge, on their own slow periods. They travel with the
