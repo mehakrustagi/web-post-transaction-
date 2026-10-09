@@ -15,8 +15,29 @@ import { motion } from 'framer-motion'
  * the second. Same stops, same shape, same object.
  */
 
-/** How far the glow reaches above the page it is attached to. */
+/** The canvas it moves on. */
+const FRAME_H = 915
+/** How tall the band is. */
 export const EDGE_H = 660
+/**
+ * And the two places it is ever in.
+ *
+ * Parked, only its top arc is on the canvas — that is the glow at the foot
+ * while the printer works. Gone, it is clear of the top. One element, one
+ * axis, one range: the band is not attached to the page and the page does not
+ * move, so neither has to know anything about the other.
+ */
+const PARK = FRAME_H - 180
+/**
+ * And where it stops.
+ *
+ * Not off the canvas. The wash across the top of the design's last frame is
+ * not a second gradient left behind by the first — it is this one, still on
+ * screen, with most of itself above the top edge and its tail lying across
+ * the page. Travelling all the way off and handing over to a stationary copy
+ * is two gradients pretending to be one.
+ */
+const GONE = -EDGE_H + 250
 
 /**
  * The spectrum, sampled off the design: indigo through blue and violet into
@@ -86,12 +107,13 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
       aria-hidden
       className="pointer-events-none absolute left-0 w-full overflow-hidden"
       style={{
-        top: -EDGE_H,
+        top: 0,
         height: EDGE_H,
+        zIndex: 3,
         maskImage: DOME,
         WebkitMaskImage: DOME,
       }}
-      initial={{ opacity: 0 }}
+      initial={{ y: PARK, opacity: 0 }}
       /*
        * In and out on the same terms.
        *
@@ -102,10 +124,16 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
        * reversed and a little longer, because something slowing down should
        * take longer than the same thing speeding up.
        */
-      animate={{ opacity: show ? (full ? [REST, 1, 1, REST * 1.1] : REST) : 0 }}
+      animate={{
+        y: full ? GONE : PARK,
+        opacity: show ? (full ? [REST, 1, 1, REST * 1.1] : REST) : 0,
+      }}
       transition={
         full
-          ? { duration: 1.5, times: [0, 0.22, 0.52, 1], ease: [0.3, 0, 0.25, 1] }
+          ? {
+              y: { duration: 1.5, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 1.5, times: [0, 0.22, 0.52, 1], ease: [0.3, 0, 0.25, 1] },
+            }
           : { duration: 0.9, ease: [0.33, 0, 0.2, 1] }
       }
     >
@@ -160,27 +188,5 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
         />
       ))}
     </motion.div>
-  )
-}
-
-/**
- * And what is left of it once the page has landed (their last frame): the
- * same spectrum across the top of the page, at a whisper. It is the same
- * gradient the edge was — the page keeps a trace of what brought it in.
- */
-export function WashTrace() {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute left-0 top-0 w-full"
-      style={{
-        height: 230,
-        opacity: 0.3,
-        backgroundImage: SPECTRUM,
-        maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 45%, transparent 100%)',
-        WebkitMaskImage:
-          'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 45%, transparent 100%)',
-      }}
-    />
   )
 }

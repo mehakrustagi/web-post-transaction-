@@ -4,23 +4,13 @@ import { FRAME_H, FRAME_W, useFrameFit } from './useFrameFit'
 import { Header } from './components/Header'
 import { PrintScene } from './scenes/PrintScene'
 import { HANDOVER } from './scenes/OrbScene'
-import { EDGE_H, WashEdge, WashTrace } from './scenes/BloomWash'
+import { WashEdge } from './scenes/BloomWash'
 import { MAP_PAGE_H, MAP_SCROLL, MAP_STOPS, MapPage, type MapStop } from './scenes/MapPage'
 import { Ribbon } from './scenes/PageScene'
 import { SparklesProvider } from './components/ui/sparkles'
 import { MAP_OFFER } from './content'
 
 const FLOOR = -(MAP_PAGE_H - FRAME_H)
-/**
- * Where the incoming page waits while the printer is still working.
- *
- * Measured from the glow rather than from the page: the band's own top edge
- * lands about two thirds down the card, so the colour fills the foot and
- * fades to nothing before it reaches the heading. The page itself is still
- * far below. Tying this to the page's height instead is what flooded the
- * whole screen the moment the band grew.
- */
-const PARK = Math.round(FRAME_H * 0.68) + EDGE_H
 
 /**
  * The orb variant with its middle replaced.
@@ -66,7 +56,12 @@ const AFTER = [
    * being scrolled to, which meant the page sat two thirds empty waiting to
    * be driven. It loads as a page, and the reader scrolls it themselves.
    */
-  { at: 3.4, step: 'landed' },
+  /*
+   * After the band has stopped, not as it stops. It fires at 1.9 and takes
+   * 1.5 to come to rest, so the words begin at 3.6 — at no point is the
+   * gradient moving across anything the page has to say.
+   */
+  { at: 3.6, step: 'landed' },
 ] as const
 
 const ORDER = ['printing', 'cook', 'fire', 'card', 'landed', 'explore', 'more'] as const
@@ -219,8 +214,11 @@ export default function TransactionApp() {
                   /* Carried off rather than cut. The dome is over it when
                      this runs, so what little shows reads as the colour
                      taking it with it. */
-                  exit={{ opacity: 0, y: -70 }}
-                  transition={{ duration: 0.45, ease: [0.5, 0, 0.3, 1] }}
+                  exit={{ opacity: 0, y: -46 }}
+                  /* Quick. It is going under the thickest part of the band,
+                     and a long fade there is a receipt dissolving in plain
+                     sight for most of its length. */
+                  transition={{ duration: 0.26, ease: 'easeIn' }}
                 >
                   <PrintScene
                     hero={!page}
@@ -235,58 +233,44 @@ export default function TransactionApp() {
             </AnimatePresence>
 
             {/*
-              The last page. It does not travel at all any more: the surface
-              above is closing onto the card that is already sitting here, so
-              everything this page does happens under cover and all a slide
-              would add is a movement nobody can see.
+              The page's own background. Opaque, and it simply fades up — it
+              does not travel, because nothing needs it to.
+            */}
+            <motion.div
+              className="absolute inset-0 z-[2] bg-canvas"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: page ? 1 : 0 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+            />
+
+            {/*
+              And the gradient, between that background and everything the
+              page says.
+
+              One band on one canvas moving one way. Above it sits the page's
+              text and below it the page's white, so while it is crossing it
+              covers the card and the receipt, and where it comes to rest it
+              is the wash behind the heading — the same gradient throughout,
+              not a travelling one handed off to a stationary copy.
+            */}
+            <WashEdge show={cooking} full={firing} />
+
+            {/*
+              The page's words arrive after the band has gone past, not while
+              it is still over them. Faded up underneath it they overlapped
+              the receipt's own fade, and two things dissolving through each
+              other under a third is the ghosting.
             */}
             <motion.div
               className="absolute inset-0 z-[2]"
-              initial={{ y: FRAME_H + EDGE_H }}
-              /*
-               * It comes up a little as it arrives. The swap itself happens
-               * under the dome's core, so this is not how the page gets here
-               * — it is the tail of the move you actually see as the colour
-               * clears, and it is what makes the screen feel like it went
-               * with the wash rather than being replaced behind it.
-               */
-              /*
-               * The one thing that moves.
-               *
-               * Parked below the card while the printer works, far enough
-               * down that only the top of its glow reaches the foot. Then it
-               * comes all the way up, and because the page's own background
-               * is opaque the receipt is covered by the page arriving rather
-               * than by anything laid over it. Nothing cross-fades with
-               * anything, which is the whole reason it reads as smooth.
-               */
-              animate={{ y: firing ? 0 : cooking ? PARK : FRAME_H + EDGE_H }}
-              transition={{
-                duration: firing ? 1.35 : 0.9,
-                ease: firing ? [0.42, 0, 0.18, 1] : [0.33, 0, 0.2, 1],
-              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: landed ? 1 : 0 }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
             >
-              <WashEdge show={cooking} full={firing} />
-
-              {/*
-                The surface itself, opaque from the moment it starts moving.
-                The page's own content only fades up once it has landed, so
-                without this the thing rising is a gradient with nothing
-                behind it — and the receipt went on showing underneath the
-                white instead of being covered by it. This is what the
-                receipt disappears behind.
-              */}
-              <div
-                className="absolute left-0 top-0 w-full bg-canvas"
-                style={{ height: MAP_PAGE_H }}
-              />
-
-              {/* What the page keeps of what brought it in. */}
-              <WashTrace />
-            <motion.div className="absolute inset-0" style={{ y }}>
-              <MapPage at={stop} show={page} landed={landed} spin={spin} canvas={HANDOVER} fill={false} />
-              <Ribbon show={page} label={MAP_OFFER.ribbon} />
-            </motion.div>
+              <motion.div className="absolute inset-0" style={{ y }}>
+                <MapPage at={stop} show={page} landed={landed} spin={spin} canvas={HANDOVER} fill={false} />
+                <Ribbon show={page} label={MAP_OFFER.ribbon} />
+              </motion.div>
             </motion.div>
 
             {/*
