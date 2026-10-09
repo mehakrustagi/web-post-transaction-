@@ -55,6 +55,10 @@ const DOME = `radial-gradient(122% 96% at 50% 112%,
   rgba(0,0,0,0.18) 93%,
   rgba(0,0,0,0) 100%)`
 
+/** How the colour lets go of the page it is riding on. */
+const FOOT =
+  'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 78%, rgba(0,0,0,0.55) 90%, rgba(0,0,0,0) 100%)'
+
 /** How much of itself it shows while the printer is still working. */
 const REST = 0.34
 
@@ -113,7 +117,23 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
       */}
       <motion.div
         className="absolute inset-y-0"
-        style={{ left: '-22%', width: '144%', backgroundImage: SPECTRUM }}
+        style={{
+          left: '-22%',
+          width: '144%',
+          backgroundImage: SPECTRUM,
+          /*
+           * And out at its own foot, into the page it is attached to.
+           *
+           * The dome gives the colour its arc along the top and leaves the
+           * bottom solid — which is right while the band is over the card,
+           * and wrong at the one place it meets the page: full saturation
+           * ending against the page's white is a hard line across the card,
+           * and that line is what you see the exit get cut by. Faded over
+           * its last fifth there is no edge there at all.
+           */
+          maskImage: FOOT,
+          WebkitMaskImage: FOOT,
+        }}
         animate={{ x: ['0%', '6%', '-4%', '0%'] }}
         transition={{ duration: 26, repeat: Infinity, ease: 'easeInOut' }}
       />

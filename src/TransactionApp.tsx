@@ -59,9 +59,14 @@ const AFTER = [
    */
   { at: 2.5, step: 'card' },
   /* And the card's own artwork arrives once the page has landed. */
+  /*
+   * And everything on the page arrives together.
+   *
+   * There is no tour down it any more: the blocks below were revealed by
+   * being scrolled to, which meant the page sat two thirds empty waiting to
+   * be driven. It loads as a page, and the reader scrolls it themselves.
+   */
   { at: 3.4, step: 'landed' },
-  { at: 4.8, step: 'explore' },
-  { at: 7.4, step: 'more' },
 ] as const
 
 const ORDER = ['printing', 'cook', 'fire', 'card', 'landed', 'explore', 'more'] as const
@@ -97,12 +102,6 @@ export default function TransactionApp() {
   }, [y])
 
   useEffect(() => {
-    if (byHand.current || !(step in MAP_SCROLL)) return
-    const run = animate(y, MAP_SCROLL[step as MapStop], { duration: 1.6, ease: [0.5, 0, 0.2, 1] })
-    return () => run.stop()
-  }, [step, y])
-
-  useEffect(() => {
     setStep(still ? 'card' : 'printing')
     byHand.current = false
     setStop('page')
@@ -130,6 +129,13 @@ export default function TransactionApp() {
 
   const landed = step === 'landed' || step in MAP_SCROLL
   const page = step === 'card' || landed
+
+  /* Everything below is shown the moment the page is up, rather than as it
+     is scrolled past. */
+  useEffect(() => {
+    if (!landed) return
+    setStop(MAP_STOPS[MAP_STOPS.length - 1])
+  }, [landed])
   const cooking = reached(step, 'cook')
   const firing = reached(step, 'fire')
   /*
