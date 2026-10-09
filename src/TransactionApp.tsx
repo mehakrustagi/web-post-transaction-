@@ -74,6 +74,8 @@ export default function TransactionApp() {
   const [step, setStep] = useState<Step>('printing')
   /** The printer has started putting the slip out. */
   const [feeding, setFeeding] = useState(false)
+  /** And the cut has started running. */
+  const [tearing, setTearing] = useState(false)
   const timers = useRef<number[]>([])
 
   /* The card's artwork turns and warms exactly as it does on the orb page —
@@ -95,6 +97,7 @@ export default function TransactionApp() {
   useEffect(() => {
     setStep(still ? 'card' : 'printing')
     setFeeding(!!still)
+    setTearing(!!still)
     byHand.current = false
     setStop('page')
     y.set(0)
@@ -230,12 +233,25 @@ export default function TransactionApp() {
                   }}
                 >
                   <PrintScene
-                    hero={!page}
+                    /* The heading goes with the cut. The block lifts 134 to
+                       centre the slip, and the flag rides up into the header
+                       if it is still there — and once the slip is being cut
+                       free the line it was printed under is the old frame. */
+                    hero={!page && !tearing}
                     leaving={step !== 'printing'}
                     detached={false}
                     handOver={false}
                     fill={false}
                     onFeeding={() => setFeeding(true)}
+                    /*
+                     * The cut frees the slip, so it goes to the middle of the
+                     * card and takes the machine with it. They are printed
+                     * where the heading leaves room for them, which is not
+                     * the middle of anything — and from here the slip is the
+                     * only thing left to look at.
+                     */
+                    onTearing={() => setTearing(true)}
+                    centre={tearing}
                     onRest={onRest}
                   />
                 </motion.div>
