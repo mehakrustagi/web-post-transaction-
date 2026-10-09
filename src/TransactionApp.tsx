@@ -220,11 +220,14 @@ export default function TransactionApp() {
                   /* Carried off rather than cut. The dome is over it when
                      this runs, so what little shows reads as the colour
                      taking it with it. */
-                  exit={{ opacity: 0, y: -46 }}
-                  /* Quick. It is going under the thickest part of the band,
-                     and a long fade there is a receipt dissolving in plain
-                     sight for most of its length. */
-                  transition={{ duration: 0.26, ease: 'easeIn' }}
+                  /* Up and out on the same curve as everything else, because
+                     it is on the same canvas — the slip is not dismissed, it
+                     is scrolled past. */
+                  exit={{ opacity: 0, y: -340 }}
+                  transition={{
+                    y: { duration: 1.1, ease: [0.4, 0, 0.2, 1] },
+                    opacity: { duration: 0.42, ease: 'easeIn' },
+                  }}
                 >
                   <PrintScene
                     hero={!page}
@@ -246,8 +249,8 @@ export default function TransactionApp() {
             <motion.div
               className="absolute inset-0 z-[2] bg-canvas"
               initial={{ opacity: 0 }}
-              animate={{ opacity: page ? 1 : 0 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              animate={{ opacity: firing ? 1 : 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
             />
 
             {/*
@@ -263,16 +266,27 @@ export default function TransactionApp() {
             <WashEdge show={cooking} full={firing} />
 
             {/*
-              The page's words arrive after the band has gone past, not while
-              it is still over them. Faded up underneath it they overlapped
-              the receipt's own fade, and two things dissolving through each
-              other under a third is the ghosting.
+              And the page comes up behind it.
+              
+              Not a fade in place: the words travel the way the colour
+              travelled, on the same curve and half a second behind, so they
+              are drawn up out from under its trailing edge rather than
+              appearing where they will end up. The canvas is one tall strip
+              moving in one direction — the band is simply the part of it you
+              can see first.
+              
+              They still never meet. The band's foot fades out as it goes, and
+              the words are always below it, so nothing is ever read through
+              colour.
             */}
             <motion.div
               className="absolute inset-0 z-[2]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: landed ? 1 : 0 }}
-              transition={{ duration: 0.45, ease: 'easeOut' }}
+              initial={{ opacity: 0, y: 320 }}
+              animate={{ opacity: firing ? 1 : 0, y: firing ? 0 : 320 }}
+              transition={{
+                y: { delay: 0.55, duration: 1.5, ease: [0.4, 0, 0.2, 1] },
+                opacity: { delay: 0.55, duration: 0.5, ease: 'easeOut' },
+              }}
             >
               <motion.div className="absolute inset-0" style={{ y }}>
                 <MapPage at={stop} show={page} landed={landed} spin={spin} canvas={HANDOVER} fill={false} />

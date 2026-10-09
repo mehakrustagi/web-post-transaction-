@@ -39,15 +39,14 @@ export const EDGE_H = 900
  */
 const PARK = FRAME_H - 260
 /**
- * And where it stops.
+ * And where it goes, which is away.
  *
- * Not off the canvas. The wash across the top of the design's last frame is
- * not a second gradient left behind by the first — it is this one, still on
- * screen, with most of itself above the top edge and its tail lying across
- * the page. Travelling all the way off and handing over to a stationary copy
- * is two gradients pretending to be one.
+ * Off the top entirely, and down to nothing on the way. It used to come to
+ * rest with its tail across the page on the grounds that the design's last
+ * frame has a wash there — but a gradient that stops is a gradient still on
+ * screen, and what the page is left with should be the page.
  */
-const GONE = -EDGE_H + 250
+const GONE = -EDGE_H - 120
 
 /**
  * The spectrum, sampled off the design: indigo through blue and violet into
@@ -67,30 +66,22 @@ const SPECTRUM = `linear-gradient(97deg,
 /**
  * And the shape of it.
  *
- * A circle centred just below the band, so every iso-line is an arc that
- * rides highest through the middle and falls away evenly in every direction
- * — the colour is contained by a round edge rather than running out to the
- * sides of the card and stopping there. That dome is
- * the top edge in the design, and masking the spectrum with it means the
- * colour never has a straight boundary anywhere — the band is a rectangle and
- * nothing about it reads as one.
+ * Centred *in* the band, not below it, so the falloff is a curve at the foot
+ * as well as at the head. With the centre underneath, the bottom of the shape
+ * was still solid where the element ran out and the colour stopped against a
+ * straight line — the same fault the top had, at the other end.
  *
- * Solid until 63% of the way out, though. The fall-off is the arc's edge, not
- * the arc: with the mask fading from the very centre the band was translucent
- * across most of itself and the receipt went on showing through the colour,
- * which is the thing that made it look pasted on in the first place.
+ * Wider than it is tall, because the card is: 900 across reaches the sides
+ * and 430 down falls to nothing a little before either edge, so the colour is
+ * held by a curve everywhere and by a boundary nowhere.
  */
-const DOME = `radial-gradient(circle 940px at 50% 112%,
+const DOME = `radial-gradient(900px 430px at 50% 50%,
   rgba(0,0,0,1) 0%,
-  rgba(0,0,0,1) 63%,
-  rgba(0,0,0,0.86) 73%,
-  rgba(0,0,0,0.5) 84%,
-  rgba(0,0,0,0.18) 93%,
+  rgba(0,0,0,1) 44%,
+  rgba(0,0,0,0.88) 58%,
+  rgba(0,0,0,0.55) 72%,
+  rgba(0,0,0,0.22) 86%,
   rgba(0,0,0,0) 100%)`
-
-/** How the colour lets go of the page it is riding on. */
-const FOOT =
-  'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 78%, rgba(0,0,0,0.55) 90%, rgba(0,0,0,0) 100%)'
 
 /** How much of itself it shows while the printer is still working. */
 const REST = 0.34
@@ -138,7 +129,7 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
        */
       animate={{
         y: full ? GONE : PARK,
-        opacity: show ? (full ? [REST, 1, 1, REST] : REST) : 0,
+        opacity: show ? (full ? [REST, 1, 0.85, 0] : REST) : 0,
       }}
       transition={
         full
@@ -149,10 +140,9 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
                *
                * The band stops at 1.5 and the page's words begin at 1.7, so
                * running the fade over 2.2 leaves its last stretch happening
-               * while they arrive — the wash dissolves into the top of the
-               * page at the same moment the text dissolves onto it, rather
-               * than finishing first and waiting. Two things settling
-               * together read as one thing settling.
+               * while they arrive — the colour is still going as the words
+               * come up behind it, rather than finishing first and waiting.
+               * Two things settling together read as one thing settling.
                */
               opacity: {
                 duration: 2.2,
@@ -175,18 +165,6 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
           left: '-22%',
           width: '144%',
           backgroundImage: SPECTRUM,
-          /*
-           * And out at its own foot, into the page it is attached to.
-           *
-           * The dome gives the colour its arc along the top and leaves the
-           * bottom solid — which is right while the band is over the card,
-           * and wrong at the one place it meets the page: full saturation
-           * ending against the page's white is a hard line across the card,
-           * and that line is what you see the exit get cut by. Faded over
-           * its last fifth there is no edge there at all.
-           */
-          maskImage: FOOT,
-          WebkitMaskImage: FOOT,
         }}
         animate={{ x: ['0%', '6%', '-4%', '0%'] }}
         transition={{ duration: 26, repeat: Infinity, ease: 'easeInOut' }}
