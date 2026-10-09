@@ -4,13 +4,22 @@ import { FRAME_H, FRAME_W, useFrameFit } from './useFrameFit'
 import { Header } from './components/Header'
 import { PrintScene } from './scenes/PrintScene'
 import { HANDOVER } from './scenes/OrbScene'
-import { BloomWash } from './scenes/BloomWash'
+import { EDGE_H, WashEdge } from './scenes/BloomWash'
 import { MAP_PAGE_H, MAP_SCROLL, MAP_STOPS, MapPage, type MapStop } from './scenes/MapPage'
 import { Ribbon } from './scenes/PageScene'
 import { SparklesProvider } from './components/ui/sparkles'
 import { MAP_OFFER } from './content'
 
 const FLOOR = -(MAP_PAGE_H - FRAME_H)
+/**
+ * Where the incoming page waits while the printer is still working.
+ *
+ * Low enough that the page itself is nowhere near the card and only the top
+ * of the glow on its leading edge reaches the foot of it — which is the
+ * warmth under the receipt, and is the same object that later carries the
+ * whole thing away.
+ */
+const PARK = FRAME_H - 250
 
 /**
  * The orb variant with its middle replaced.
@@ -43,11 +52,12 @@ const AFTER = [
   /* Up it goes, and the receipt goes with it. */
   { at: 1.9, step: 'fire' },
   /*
-   * `card` is not on this list. The wash calls it part-way up its own travel,
-   * at the moment the colour is over the middle of the frame — one clock, and
-   * the only clock that knows where the colour actually is.
+   * Six tenths into the rise, by which point the page's own background has
+   * covered the middle of the card and there is nothing left of the receipt
+   * to see go.
    */
-  /* And the card's own artwork arrives once the frost has cleared off it. */
+  { at: 2.5, step: 'card' },
+  /* And the card's own artwork arrives once the page has landed. */
   { at: 3.4, step: 'landed' },
   { at: 4.8, step: 'explore' },
   { at: 7.4, step: 'more' },
@@ -119,9 +129,6 @@ export default function TransactionApp() {
 
   const landed = step === 'landed' || step in MAP_SCROLL
   const page = step === 'card' || landed
-  /* The wash says when, from under its own colour. */
-  const uncover = useCallback(() => setStep((s) => (s === 'fire' ? 'card' : s)), [])
-
   const cooking = reached(step, 'cook')
   const firing = reached(step, 'fire')
   /*
@@ -191,13 +198,6 @@ export default function TransactionApp() {
               transition={{ duration: 0.2, ease: 'easeOut' }}
             />
 
-            {/* On the card, under the paper. */}
-            <BloomWash
-              cook={cooking}
-              fire={firing}
-              onFired={uncover}
-              key={`wash-${run}`}
-            />
 
             <AnimatePresence>
               {showPrint && (
@@ -235,7 +235,7 @@ export default function TransactionApp() {
             */}
             <motion.div
               className="absolute inset-0 z-[2]"
-              initial={false}
+              initial={{ y: FRAME_H + EDGE_H }}
               /*
                * It comes up a little as it arrives. The swap itself happens
                * under the dome's core, so this is not how the page gets here
@@ -243,12 +243,36 @@ export default function TransactionApp() {
                * clears, and it is what makes the screen feel like it went
                * with the wash rather than being replaced behind it.
                */
-              animate={{ opacity: page ? 1 : 0, y: page ? 0 : 44 }}
+              /*
+               * The one thing that moves.
+               *
+               * Parked below the card while the printer works, far enough
+               * down that only the top of its glow reaches the foot. Then it
+               * comes all the way up, and because the page's own background
+               * is opaque the receipt is covered by the page arriving rather
+               * than by anything laid over it. Nothing cross-fades with
+               * anything, which is the whole reason it reads as smooth.
+               */
+              animate={{ y: firing ? 0 : cooking ? PARK : FRAME_H + EDGE_H }}
               transition={{
-                opacity: { duration: 0.18, ease: 'easeOut' },
-                y: { duration: 0.95, ease: [0.2, 0.7, 0.25, 1] },
+                duration: firing ? 1.35 : 0.9,
+                ease: firing ? [0.42, 0, 0.18, 1] : [0.33, 0, 0.2, 1],
               }}
             >
+              <WashEdge show={cooking} />
+
+              {/*
+                The surface itself, opaque from the moment it starts moving.
+                The page's own content only fades up once it has landed, so
+                without this the thing rising is a gradient with nothing
+                behind it — and the receipt went on showing underneath the
+                white instead of being covered by it. This is what the
+                receipt disappears behind.
+              */}
+              <div
+                className="absolute left-0 top-0 w-full bg-canvas"
+                style={{ height: MAP_PAGE_H }}
+              />
             <motion.div className="absolute inset-0" style={{ y }}>
               <motion.div
                 className="absolute left-0 top-0 w-full bg-canvas"
