@@ -40,23 +40,13 @@ const AFTER = [
    * it settled, the colour was competing with it.
    */
   { at: 0.5, step: 'cook' },
-  /* Up it goes, and the card goes with it. */
+  /* Up it goes, and the receipt goes with it. */
   { at: 1.9, step: 'fire' },
   /*
-   * A third of a second into the launch — while the sheet is over everything
-   * from the heading down, not after it has gone. Swapping once it had passed
-   * left the frame genuinely empty for a beat, which is the one thing worse
-   * than an overlap. Hidden under an opaque wash, the overlap costs nothing:
-   * the card goes and the page starts climbing in the same covered moment,
-   * and what you actually see is the tail of that climb as the sheet clears.
+   * `card` is not on this list. The wash calls it part-way up its own travel,
+   * at the moment the colour is over the middle of the frame — one clock, and
+   * the only clock that knows where the colour actually is.
    */
-  { at: 2.25, step: 'card' },
-  /* As the surface finishes closing and lets go of the card beneath it, which
-     is identical to it — so the hand-over is the content appearing rather
-     than the colour changing. */
-  { at: 3.5, step: 'landed' },
-  { at: 4.9, step: 'explore' },
-  { at: 7.5, step: 'more' },
 ] as const
 
 const ORDER = ['printing', 'cook', 'fire', 'card', 'landed', 'explore', 'more'] as const
@@ -125,6 +115,9 @@ export default function TransactionApp() {
 
   const landed = step === 'landed' || step in MAP_SCROLL
   const page = step === 'card' || landed
+  /* The wash says when, from under its own colour. */
+  const uncover = useCallback(() => setStep((s) => (s === 'fire' ? 'card' : s)), [])
+
   const cooking = reached(step, 'cook')
   const firing = reached(step, 'fire')
   /*
@@ -195,7 +188,12 @@ export default function TransactionApp() {
             />
 
             {/* On the card, under the paper. */}
-            <BloomWash cook={cooking} fire={firing} key={`wash-${run}`} />
+            <BloomWash
+              cook={cooking}
+              fire={firing}
+              onFired={uncover}
+              key={`wash-${run}`}
+            />
 
             <AnimatePresence>
               {showPrint && (
