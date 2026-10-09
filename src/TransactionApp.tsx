@@ -34,12 +34,6 @@ const FLOOR = -(MAP_PAGE_H - FRAME_H)
  * point, not slack to be tightened out.
  */
 const AFTER = [
-  /*
-   * Half a second after the slip is down. The receipt is allowed to land and
-   * be read before anything starts taking it away — arriving on the same beat
-   * it settled, the colour was competing with it.
-   */
-  { at: 0.5, step: 'cook' },
   /* Up it goes, and the receipt goes with it. */
   { at: 1.9, step: 'fire' },
   /*
@@ -78,6 +72,8 @@ export default function TransactionApp() {
   const still = useReducedMotion()
   const [run, setRun] = useState(0)
   const [step, setStep] = useState<Step>('printing')
+  /** The printer has started putting the slip out. */
+  const [feeding, setFeeding] = useState(false)
   const timers = useRef<number[]>([])
 
   /* The card's artwork turns and warms exactly as it does on the orb page —
@@ -98,6 +94,7 @@ export default function TransactionApp() {
 
   useEffect(() => {
     setStep(still ? 'card' : 'printing')
+    setFeeding(!!still)
     byHand.current = false
     setStop('page')
     y.set(0)
@@ -131,7 +128,16 @@ export default function TransactionApp() {
     if (!landed) return
     setStop(MAP_STOPS[MAP_STOPS.length - 1])
   }, [landed])
-  const cooking = reached(step, 'cook')
+  /*
+   * The colour starts with the printing, not after it.
+   *
+   * It used to wait until half a second after the slip was down, which is a
+   * gradient arriving to take something away rather than one that was on the
+   * page all along. It comes up as the first of the slip does, slowly enough
+   * that by the time there is a receipt to look at the warmth at the foot is
+   * simply part of the screen.
+   */
+  const cooking = feeding
   const firing = reached(step, 'fire')
   /*
    * The print scene stays mounted right up to the page. It owns the flag, the
@@ -226,6 +232,7 @@ export default function TransactionApp() {
                     detached={false}
                     handOver={false}
                     fill={false}
+                    onFeeding={() => setFeeding(true)}
                     onRest={onRest}
                   />
                 </motion.div>

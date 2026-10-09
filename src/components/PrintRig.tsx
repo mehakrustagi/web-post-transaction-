@@ -432,6 +432,7 @@ export function PrintRig({
   onRest,
   onPrinted,
   onTearing,
+  onFeeding,
 }: {
   delay?: number
   /** The machine and the tail in its mouth go; the slip stays. */
@@ -455,6 +456,8 @@ export function PrintRig({
   onPrinted?: () => void
   /** And the cut has started running. */
   onTearing?: () => void
+  /** The slip has started coming out — the first thing that happens. */
+  onFeeding?: () => void
 }) {
   const rig = useRef<HTMLDivElement>(null)
   const sheet = useRef<HTMLDivElement>(null)
@@ -475,6 +478,8 @@ export function PrintRig({
   printed.current = onPrinted
   const tearing = useRef(onTearing)
   tearing.current = onTearing
+  const feeding = useRef(onFeeding)
+  feeding.current = onFeeding
   /*
    * Read, not depended on. `useReducedMotion` reports `null` on the first
    * render and resolves to a boolean after it, and with that value in the
@@ -646,6 +651,7 @@ export function PrintRig({
       setClip(paperClip(W, W, true))
       drawCurl(W)
       cls('printing', true)
+      feeding.current?.()
       cls('torn', true)
       cls('flapped', true)
       sheet.current!.style.transform = `translateY(${REST_Y}px)`
@@ -684,6 +690,7 @@ export function PrintRig({
       // 1 · print — continuous feed out of the cavity, slowing over each line
       cls('printing', true)
       cls('rumble', true)
+      feeding.current?.()
       let y = 0
       let v = 0
       await frames((dt) => {

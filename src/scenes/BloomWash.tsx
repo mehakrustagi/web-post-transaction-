@@ -57,8 +57,10 @@ const SPECTRUM = `linear-gradient(97deg,
 /**
  * And the shape of it.
  *
- * An ellipse centred just below the band, so every iso-line is an arc that
- * rides highest through the middle and falls away to the sides. That dome is
+ * A circle centred just below the band, so every iso-line is an arc that
+ * rides highest through the middle and falls away evenly in every direction
+ * — the colour is contained by a round edge rather than running out to the
+ * sides of the card and stopping there. That dome is
  * the top edge in the design, and masking the spectrum with it means the
  * colour never has a straight boundary anywhere — the band is a rectangle and
  * nothing about it reads as one.
@@ -68,7 +70,7 @@ const SPECTRUM = `linear-gradient(97deg,
  * across most of itself and the receipt went on showing through the colour,
  * which is the thing that made it look pasted on in the first place.
  */
-const DOME = `radial-gradient(122% 96% at 50% 112%,
+const DOME = `radial-gradient(circle 940px at 50% 112%,
   rgba(0,0,0,1) 0%,
   rgba(0,0,0,1) 63%,
   rgba(0,0,0,0.86) 73%,
@@ -126,13 +128,27 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
        */
       animate={{
         y: full ? GONE : PARK,
-        opacity: show ? (full ? [REST, 1, 1, REST * 1.1] : REST) : 0,
+        opacity: show ? (full ? [REST, 1, 1, REST] : REST) : 0,
       }}
       transition={
         full
           ? {
               y: { duration: 1.5, ease: [0.4, 0, 0.2, 1] },
-              opacity: { duration: 1.5, times: [0, 0.22, 0.52, 1], ease: [0.3, 0, 0.25, 1] },
+              /*
+               * The settle outlasts the travel on purpose.
+               *
+               * The band stops at 1.5 and the page's words begin at 1.7, so
+               * running the fade over 2.2 leaves its last stretch happening
+               * while they arrive — the wash dissolves into the top of the
+               * page at the same moment the text dissolves onto it, rather
+               * than finishing first and waiting. Two things settling
+               * together read as one thing settling.
+               */
+              opacity: {
+                duration: 2.2,
+                times: [0, 0.15, 0.34, 1],
+                ease: [0.33, 0, 0.3, 1],
+              },
             }
           : { duration: 0.9, ease: [0.33, 0, 0.2, 1] }
       }

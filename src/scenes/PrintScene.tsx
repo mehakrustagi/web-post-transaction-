@@ -117,6 +117,7 @@ export function PrintScene({
   onRest,
   onPrinted,
   onTearing,
+  onFeeding,
   centre = false,
   hero = true,
   handOver = false,
@@ -136,6 +137,8 @@ export function PrintScene({
   onPrinted?: () => void
   /** And that the cut has started. */
   onTearing?: () => void
+  /** And that the slip has started coming out. */
+  onFeeding?: () => void
   /**
    * Bring the machine and the slip hanging off it to the middle of the frame.
    *
@@ -284,6 +287,7 @@ export function PrintScene({
         <PrintRig
           onPrinted={onPrinted}
           onTearing={onTearing}
+          onFeeding={onFeeding}
           delay={AT.feed}
           leaving={leaving}
           detached={detached}
