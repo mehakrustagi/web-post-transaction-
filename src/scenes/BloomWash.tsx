@@ -21,19 +21,27 @@ import { motion } from 'framer-motion'
 export const EDGE_H = 620
 
 /**
- * Bottom to top: the page's own white, the card's blue, its deep blue, and
- * out. Read in the direction of travel it is the reverse — you get the deep
- * end first, then the blue, then the white, and then the page is simply
+ * Bottom to top: the page's own white, then Figma's Tideline — #00CABA into
+ * #0476C6 — anchored at the far end by the card's own #0E528D.
+ *
+ * Tideline is the one gradient in that set that is already our family: the
+ * eSIM card runs #0b5975 to #159d94, which is the same blue-to-cyan walk a
+ * little further into the dark. Taking it as-is and keeping our deep blue
+ * behind it gives the edge Tideline's brightness without it arriving as
+ * somebody else's palette.
+ *
+ * Read in the direction of travel it is the reverse — the deep end first,
+ * then the blue, then the cyan, then white, and then the page is simply
  * there, which is the order the reference arrives in.
  */
 const EDGE = `linear-gradient(to top,
   rgba(248,249,251,1) 0%,
-  rgba(226,240,255,0.98) 12%,
-  rgba(150,186,240,0.95) 28%,
-  rgba(66,112,211,0.92) 46%,
-  rgba(14,82,141,0.72) 64%,
-  rgba(17,131,136,0.3) 82%,
-  rgba(17,131,136,0) 100%)`
+  rgba(222,247,250,0.98) 11%,
+  rgba(0,202,186,0.9) 27%,
+  rgba(4,118,198,0.94) 46%,
+  rgba(14,82,141,0.78) 64%,
+  rgba(4,118,198,0.28) 82%,
+  rgba(0,202,186,0) 100%)`
 
 /**
  * Specks riding the edge, on their own slow periods. They travel with the
