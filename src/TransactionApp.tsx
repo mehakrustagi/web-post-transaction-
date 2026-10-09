@@ -88,6 +88,8 @@ export default function TransactionApp() {
    * gradient is about to take.
    */
   const [freed, setFreed] = useState(false)
+  /** And the cut has finished — which is when the machine has no job left. */
+  const [cut, setCut] = useState(false)
   const timers = useRef<number[]>([])
 
   /* The card's artwork turns and warms exactly as it does on the orb page —
@@ -110,6 +112,7 @@ export default function TransactionApp() {
     setStep(still ? 'card' : 'printing')
     setFeeding(!!still)
     setFreed(!!still)
+    setCut(!!still)
     byHand.current = false
     setStop('page')
     y.set(0)
@@ -130,6 +133,7 @@ export default function TransactionApp() {
 
   /* The rig calls this when the slip has stopped swinging. */
   const onRest = useCallback(() => {
+    setCut(true)
     timers.current.forEach(clearTimeout)
     timers.current = AFTER.map((b) => window.setTimeout(() => setStep(b.step), b.at * 1000))
   }, [])
@@ -246,7 +250,11 @@ export default function TransactionApp() {
                 >
                   <PrintScene
                     hero={!page && !freed}
-                    leaving={step !== 'printing' || freed}
+                    /* The machine stays for the cut — it is the thing doing
+                       the cutting — and goes once the slip is down. Tying
+                       this to the start of the tear took it off the card
+                       mid-cut. */
+                    leaving={step !== 'printing' || cut}
                     detached={false}
                     handOver={false}
                     fill={false}

@@ -799,15 +799,16 @@ export function PrintRig({
       await sheet.current!.animate(
         [
           { transform: 'translateY(4px) rotate(-3deg)' },
-          { transform: 'translateY(34px) rotate(1.8deg)', offset: 0.42 },
-          { transform: 'translateY(24px) rotate(-.8deg)', offset: 0.68 },
-          { transform: 'translateY(29px) rotate(.3deg)', offset: 0.86 },
           { transform: 'translateY(28px) rotate(0deg)' },
         ],
-        /* Half what it was. The swing is a settle, not a performance — and
-           what follows it is the slip leaving, so a long one is a pause with
-           a wobble in it. */
-        { duration: 540, easing: 'cubic-bezier(.3,.8,.3,1)', fill: 'forwards' },
+        /*
+         * It drops and stops. It used to overshoot and rock back through
+         * four keyframes — a settle that made sense while the slip stayed
+         * where it fell, and reads as a stamp being shaken now the scene is
+         * lifting the same sheet to the middle of the card at the same time.
+         * Two motions on one object, and the smaller one wins the argument.
+         */
+        { duration: 420, easing: 'cubic-bezier(.25,.9,.3,1)', fill: 'forwards' },
       ).finished
       if (!live) return
       sheet.current!.getAnimations().forEach((a) => a.cancel())
