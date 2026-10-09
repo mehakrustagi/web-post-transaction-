@@ -27,8 +27,14 @@ const FRAME_H = 915
  * whole point is that there is no straight line. At 900 the top centre is
  * past the circle entirely and the bottom corners are still inside it, so it
  * fades out above and keeps its width below.
+ *
+ * And it is 1250 rather than 900, because at 900 the whole thing read as a
+ * condensed strip: the colour went from nothing to full and back inside a
+ * third of the card, which is a band with a gradient in it rather than a
+ * gradient. Given half again as much room the same stops have somewhere to
+ * open out.
  */
-export const EDGE_H = 900
+export const EDGE_H = 1250
 /**
  * And the two places it is ever in.
  *
@@ -37,7 +43,7 @@ export const EDGE_H = 900
  * axis, one range: the band is not attached to the page and the page does not
  * move, so neither has to know anything about the other.
  */
-const PARK = FRAME_H - 260
+const PARK = FRAME_H - 200
 /**
  * And where it goes, which is away.
  *
@@ -47,7 +53,7 @@ const PARK = FRAME_H - 260
  * arrived: faint, for a moment, and then not there. Taking it off the canvas
  * outright skipped that beat and the end came out blunter than the start.
  */
-const GONE = -EDGE_H + 180
+const GONE = -EDGE_H + 260
 
 /**
  * The spectrum, sampled off the design: indigo through blue and violet into
@@ -72,11 +78,13 @@ const SPECTRUM = `linear-gradient(97deg,
  * was still solid where the element ran out and the colour stopped against a
  * straight line — the same fault the top had, at the other end.
  *
- * Wider than it is tall, because the card is: 900 across reaches the sides
- * and 430 down falls to nothing a little before either edge, so the colour is
- * held by a curve everywhere and by a boundary nowhere.
+ * Wider than it is tall, because the card is. 1400 across puts the frame's
+ * own sides at 0.46 of the radius, so the colour crosses the card at full
+ * strength instead of thinning out before it gets there; 600 down still
+ * falls to nothing just before either edge, so it is held by a curve
+ * everywhere and by a boundary nowhere.
  */
-const DOME = `radial-gradient(900px 430px at 50% 50%,
+const DOME = `radial-gradient(1400px 600px at 50% 50%,
   rgba(0,0,0,1) 0%,
   rgba(0,0,0,1) 44%,
   rgba(0,0,0,0.88) 58%,
