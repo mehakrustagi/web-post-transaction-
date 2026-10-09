@@ -47,6 +47,10 @@ const AFTER = [
    * at the moment the colour is over the middle of the frame — one clock, and
    * the only clock that knows where the colour actually is.
    */
+  /* And the card's own artwork arrives once the frost has cleared off it. */
+  { at: 3.4, step: 'landed' },
+  { at: 4.8, step: 'explore' },
+  { at: 7.4, step: 'more' },
 ] as const
 
 const ORDER = ['printing', 'cook', 'fire', 'card', 'landed', 'explore', 'more'] as const

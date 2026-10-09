@@ -123,7 +123,40 @@ function BloomFields() {
  * anything short of 1600 leaves its own bottom edge somewhere on the card.
  */
 const FIRE_Y = 1680
-const FIRE_MS = 1150
+const FIRE_MS = 1400
+/**
+ * The veil, which is what makes the hand-over a dissolve rather than a swap.
+ *
+ * Straight from the onboarding build, with one change: it only exists while
+ * the wash is leaving. There it covers the payment screen for the whole beat,
+ * and that is why an earlier pass here had to be torn out — a 30px blur sat
+ * over the receipt the entire time the colour was merely cooking, and a slip
+ * you cannot read is not a slip. Held back until the launch it does the job
+ * it is good at and none of the damage: the card frosts over, the colour
+ * rises through it, and the page is already there when it clears.
+ */
+const VEIL =
+  'linear-gradient(180deg, rgba(255,255,255,0.76) 0%, rgba(255,255,255,0.70) 38%, rgba(255,255,255,0.40) 72%, rgba(255,255,255,0.22) 100%)'
+
+/**
+ * And the glints in it.
+ *
+ * Specks of light in the colour, on their own slow periods, drifting up
+ * through the pool. They sit above the wash and below the paper, so the
+ * sparkle is in the gradient and never on the receipt. Deterministic, because
+ * a wash that twinkles differently every run is a wash nobody can art-direct.
+ */
+const GLINTS = Array.from({ length: 22 }, (_, i) => {
+  const r = (n: number) => ((Math.sin(i * 12.9898 + n * 78.233) * 43758.5453) % 1 + 1) % 1
+  return {
+    x: 10 + r(1) * 420,
+    y: 520 + r(2) * 420,
+    d: 3 + r(3) * 5,
+    dur: 2.6 + r(4) * 3.4,
+    delay: r(5) * 4,
+    rise: 40 + r(6) * 80,
+  }
+})
 /**
  * And when, part-way up, the page underneath is swapped in.
  *
@@ -191,7 +224,8 @@ export function BloomWash({
    * the wrong shade.
    */
   return (
-    <div
+    <>
+      <div
       className="pointer-events-none absolute inset-0 overflow-hidden rounded-[40px]"
       style={{ zIndex: fired ? 3 : 1, mixBlendMode: 'multiply' }}
     >
@@ -306,6 +340,70 @@ export function BloomWash({
           />
         </motion.div>
       </div>
-    </div>
+      </div>
+
+      {/*
+        The sparkle. Above the colour and below the paper, so it is in the
+        gradient and never on the receipt.
+      */}
+      <div
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-[40px]"
+        style={{ zIndex: 1 }}
+      >
+        <motion.div
+          className="absolute left-0 top-0"
+          style={{ width: SRC_W, height: SRC_H, transform: `scale(${SX}, ${SY})`, transformOrigin: '0 0' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: active ? (fired ? 0 : 1) : 0 }}
+          transition={{ duration: fired ? 0.4 : 0.9, ease: 'easeOut' }}
+        >
+          {GLINTS.map((g, i) => (
+            <motion.span
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                left: g.x,
+                top: g.y,
+                width: g.d,
+                height: g.d,
+                background:
+                  'radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(236,252,255,0.6) 45%, rgba(255,255,255,0) 100%)',
+                filter: 'blur(0.4px)',
+              }}
+              animate={{ opacity: [0, 0.9, 0], y: [0, -g.rise], scale: [0.7, 1.15, 0.8] }}
+              transition={{
+                duration: g.dur,
+                delay: g.delay,
+                repeat: Infinity,
+                repeatDelay: 1.1,
+                ease: 'easeInOut',
+              }}
+            />
+          ))}
+        </motion.div>
+      </div>
+
+      {/*
+        And the frost, over everything, for the length of the launch only.
+        The page is swapped under it rather than beside it, which is the whole
+        reason the hand-over reads as one surface resolving into another.
+      */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-[40px]"
+        style={{
+          zIndex: 4,
+          backgroundImage: VEIL,
+          backdropFilter: 'blur(26px) saturate(106%)',
+          WebkitBackdropFilter: 'blur(26px) saturate(106%)',
+        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: fired ? [0, 1, 1, 0] : 0 }}
+        transition={
+          fired
+            ? { duration: FIRE_MS / 1000, times: [0, 0.26, 0.6, 1], ease: 'easeInOut' }
+            : { duration: 0.2 }
+        }
+      />
+    </>
   )
 }
