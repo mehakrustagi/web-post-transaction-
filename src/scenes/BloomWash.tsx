@@ -41,12 +41,13 @@ const PARK = FRAME_H - 260
 /**
  * And where it goes, which is away.
  *
- * Off the top entirely, and down to nothing on the way. It used to come to
- * rest with its tail across the page on the grounds that the design's last
- * frame has a wash there — but a gradient that stops is a gradient still on
- * screen, and what the page is left with should be the page.
+ * Up until only its tail is left on the page — and then out by fading, not
+ * by travelling further. That tail is the same whisper it brewed at the foot
+ * of the card before any of this started, so the colour leaves the way it
+ * arrived: faint, for a moment, and then not there. Taking it off the canvas
+ * outright skipped that beat and the end came out blunter than the start.
  */
-const GONE = -EDGE_H - 120
+const GONE = -EDGE_H + 180
 
 /**
  * The spectrum, sampled off the design: indigo through blue and violet into
@@ -129,7 +130,7 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
        */
       animate={{
         y: full ? GONE : PARK,
-        opacity: show ? (full ? [REST, 1, 0.85, 0] : REST) : 0,
+        opacity: show ? (full ? [REST, 1, 1, REST, REST, 0] : REST) : 0,
       }}
       transition={
         full
@@ -144,9 +145,19 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
                * come up behind it, rather than finishing first and waiting.
                * Two things settling together read as one thing settling.
                */
+              /*
+               * Five stops, and the fourth and fifth are the same on purpose.
+               *
+               * Ramping from full straight down to nothing passes through the
+               * whisper without ever being it — the colour just decays. Held
+               * there for the best part of a second it brews at the top the
+               * way it brewed at the foot, and only then goes. The end is the
+               * beginning backwards, which is the only way out that matches
+               * the way in.
+               */
               opacity: {
-                duration: 2.2,
-                times: [0, 0.15, 0.34, 1],
+                duration: 3,
+                times: [0, 0.1, 0.32, 0.52, 0.76, 1],
                 ease: [0.33, 0, 0.3, 1],
               },
             }
