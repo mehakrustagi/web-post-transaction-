@@ -56,19 +56,30 @@ const PARK = FRAME_H - 200
 const GONE = -EDGE_H + 260
 
 /**
- * The spectrum, sampled off the design: indigo through blue and violet into
- * magenta and coral. It runs across the card rather than down it — the dome
- * below is what gives it a top edge, so this only has to carry the hues.
+ * The spectrum, sampled across the middle of 458:28512.
+ *
+ * Wider than the run I had: it opens on a deep indigo rather than a mid blue
+ * and carries on past coral into orange and a pale gold, which is most of
+ * what gives that frame its depth — the ends are as much of the colour as
+ * the middle. Fourteen stops because the sampled run turns through that many
+ * before it repeats itself, and dropping any of them straightens a bend.
  */
-const SPECTRUM = `linear-gradient(97deg,
-  #555896 0%,
-  #4552BF 13%,
-  #5384E7 29%,
-  #748AE9 41%,
-  #AB66D7 57%,
-  #DD5995 75%,
-  #ED8A71 91%,
-  #F2AC92 100%)`
+const SPECTRUM = `linear-gradient(95deg,
+  #3A3C6D 0%,
+  #2F3486 7%,
+  #3D48B5 15%,
+  #4963D6 23%,
+  #4F7EE4 31%,
+  #5A8EE8 38%,
+  #7489E9 45%,
+  #9974E5 53%,
+  #BE5ACD 61%,
+  #D84E9E 69%,
+  #E5576D 77%,
+  #EC7956 84%,
+  #EEA465 91%,
+  #F0CC95 97%,
+  #F3E7CC 100%)`
 
 /**
  * And the shape of it.
@@ -93,7 +104,7 @@ const DOME = `radial-gradient(1400px 600px at 50% 50%,
   rgba(0,0,0,0) 100%)`
 
 /** How much of itself it shows while the printer is still working. */
-const REST = 0.34
+const REST = 0.26
 
 /**
  * Specks riding the edge, on their own slow periods. They travel with the
@@ -181,11 +192,17 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
       <motion.div
         className="absolute inset-y-0"
         style={{
-          left: '-22%',
-          width: '144%',
+          /*
+           * Only just wider than the band. At -22% and 144% the card showed
+           * the middle 70% of the run and the two ends — the deep indigo it
+           * opens on and the gold it closes on — were off the sides and never
+           * seen. The overhang only has to cover the drift.
+           */
+          left: '-8%',
+          width: '116%',
           backgroundImage: SPECTRUM,
         }}
-        animate={{ x: ['0%', '6%', '-4%', '0%'] }}
+        animate={{ x: ['0%', '4%', '-3%', '0%'] }}
         transition={{ duration: 26, repeat: Infinity, ease: 'easeInOut' }}
       />
       {GLINTS.map((g, i) => (
