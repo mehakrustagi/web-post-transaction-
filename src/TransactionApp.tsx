@@ -14,12 +14,13 @@ const FLOOR = -(MAP_PAGE_H - FRAME_H)
 /**
  * Where the incoming page waits while the printer is still working.
  *
- * Low enough that the page itself is nowhere near the card and only the top
- * of the glow on its leading edge reaches the foot of it — which is the
- * warmth under the receipt, and is the same object that later carries the
- * whole thing away.
+ * Measured from the glow rather than from the page: the band's own top edge
+ * lands about two thirds down the card, so the colour fills the foot and
+ * fades to nothing before it reaches the heading. The page itself is still
+ * far below. Tying this to the page's height instead is what flooded the
+ * whole screen the moment the band grew.
  */
-const PARK = FRAME_H - 250
+const PARK = Math.round(FRAME_H * 0.68) + EDGE_H
 
 /**
  * The orb variant with its middle replaced.

@@ -18,30 +18,48 @@ import { motion } from 'framer-motion'
  */
 
 /** How far the glow reaches above the page it is attached to. */
-export const EDGE_H = 620
+export const EDGE_H = 780
 
 /**
- * Bottom to top: the page's own white, then Figma's Tideline — #00CABA into
- * #0476C6 — anchored at the far end by the card's own #0E528D.
+ * The edge, as one radial rather than a linear band.
  *
- * Tideline is the one gradient in that set that is already our family: the
- * eSIM card runs #0b5975 to #159d94, which is the same blue-to-cyan walk a
- * little further into the dark. Taking it as-is and keeping our deep blue
- * behind it gives the edge Tideline's brightness without it arriving as
- * somebody else's palette.
+ * Two things were wrong with the band. It was a straight line across the
+ * card, and it was translucent — so the heading and the receipt went on
+ * showing through the colour, which is what made it read as a sheet laid
+ * over the screen instead of part of it.
  *
- * Read in the direction of travel it is the reverse — the deep end first,
- * then the blue, then the cyan, then white, and then the page is simply
- * there, which is the order the reference arrives in.
+ * Centring the gradient *above* the band fixes the first: every stop is then
+ * an ellipse hanging over the card, so the colour reaches higher at the sides
+ * than it does in the middle and its upper boundary dips through the centre.
+ * That is the crescent. Nothing is drawn curved — the curve is the shape of
+ * the stops.
+ *
+ * And every stop that carries colour is opaque. Only the part above the
+ * crescent is clear, which is where the screen it is rising past belongs.
+ *
+ * The clear run reaches 41% because that is past the band's own top corners.
+ * They sit further from a centre that is above the middle than the top edge
+ * does, so a shorter run left them coloured right at the element boundary —
+ * a hard horizontal line either side of the dip, which is the one thing a
+ * crescent must not have.
+ *
+ * The colours are Figma's Tideline — #00CABA into #0476C6 — anchored at the
+ * far end by the card's own #0E528D. Tideline is the one gradient in that set
+ * already in our family: the eSIM card runs #0b5975 to #159d94, the same
+ * blue-to-cyan walk a little further into the dark.
  */
-const EDGE = `linear-gradient(to top,
-  rgba(248,249,251,1) 0%,
-  rgba(222,247,250,0.98) 11%,
-  rgba(0,202,186,0.9) 27%,
-  rgba(4,118,198,0.94) 46%,
-  rgba(14,82,141,0.78) 64%,
-  rgba(4,118,198,0.28) 82%,
-  rgba(0,202,186,0) 100%)`
+const EDGE = `radial-gradient(142% 118% at 50% -24%,
+  rgba(14,82,141,0) 0%,
+  rgba(14,82,141,0) 41%,
+  rgba(14,82,141,0.5) 47%,
+  rgb(14,82,141) 54%,
+  rgb(4,118,198) 63%,
+  rgb(0,170,196) 72%,
+  rgb(0,202,186) 79%,
+  rgb(170,235,238) 87%,
+  rgb(236,248,250) 94%,
+  rgb(248,249,251) 99%,
+  rgb(248,249,251) 100%)`
 
 /**
  * Specks riding the edge, on their own slow periods. They travel with the
