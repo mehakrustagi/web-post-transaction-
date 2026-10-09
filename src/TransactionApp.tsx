@@ -289,7 +289,18 @@ export default function TransactionApp() {
             </motion.div>
             </motion.div>
 
-            <Header dark={false} onPage={page} />
+            {/*
+              No bar behind it on this route.
+              
+              `onPage` gives the header an opaque fill and a hairline, and it
+              turns on the moment the page step lands — which is six tenths
+              into the rise, so a white strip snapped across the top while
+              the colour was still travelling under it and cut the band in
+              two. The design has the lockup sitting straight on the wash
+              with nothing behind it, which is also the only version of this
+              that lets the gradient past.
+            */}
+            <Header dark={false} />
           </div>
         </div>
       </main>
