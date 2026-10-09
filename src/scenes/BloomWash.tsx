@@ -34,7 +34,7 @@ const FRAME_H = 915
  * gradient. Given half again as much room the same stops have somewhere to
  * open out.
  */
-export const EDGE_H = 1250
+export const EDGE_H = 1500
 /**
  * And the two places it is ever in.
  *
@@ -98,13 +98,17 @@ const SPECTRUM = `linear-gradient(95deg,
  * was still solid where the element ran out and the colour stopped against a
  * straight line — the same fault the top had, at the other end.
  *
- * Wider than it is tall, because the card is. 1400 across puts the frame's
- * own sides at 0.46 of the radius, so the colour crosses the card at full
- * strength instead of thinning out before it gets there; 600 down still
- * falls to nothing just before either edge, so it is held by a curve
- * everywhere and by a boundary nowhere.
+ * Close to round: 950 by 700 is an aspect of 1.36, where it used to be 2.33
+ * and read as a band with curved ends rather than a shape. The card's own
+ * sides land at 0.67 of the radius, so the colour is thinning by the time it
+ * reaches them — which is the containment, and the reason this looks like
+ * one thing rather than a stripe.
+ *
+ * The band grew to 1500 to allow it. The vertical radius has to stay inside
+ * half the element's height or the circle is cut flat by the boundary before
+ * it has finished falling off, and 700 against 750 clears it.
  */
-const DOME = `radial-gradient(1400px 600px at 50% 50%,
+const DOME = `radial-gradient(950px 700px at 50% 50%,
   rgba(0,0,0,1) 0%,
   rgba(0,0,0,1) 44%,
   rgba(0,0,0,0.88) 58%,

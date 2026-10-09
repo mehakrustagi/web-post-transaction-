@@ -35,13 +35,18 @@ const FLOOR = -(MAP_PAGE_H - FRAME_H)
  */
 const AFTER = [
   /* Up it goes, and the receipt goes with it. */
-  { at: 1.9, step: 'fire' },
+  /*
+   * Straight away. The slip has been on its way to the middle since the cut
+   * started and there is nothing left for it to do there — holding it for
+   * most of two seconds was a pause with a receipt in it.
+   */
+  { at: 0.35, step: 'fire' },
   /*
    * Six tenths into the rise, by which point the page's own background has
    * covered the middle of the card and there is nothing left of the receipt
    * to see go.
    */
-  { at: 2.5, step: 'card' },
+  { at: 0.95, step: 'card' },
   /* And the card's own artwork arrives once the page has landed. */
   /*
    * And everything on the page arrives together.
@@ -55,7 +60,7 @@ const AFTER = [
    * 1.5 to come to rest, so the words begin at 3.6 — at no point is the
    * gradient moving across anything the page has to say.
    */
-  { at: 3.6, step: 'landed' },
+  { at: 2.05, step: 'landed' },
 ] as const
 
 const ORDER = ['printing', 'cook', 'fire', 'card', 'landed', 'explore', 'more'] as const
@@ -125,7 +130,6 @@ export default function TransactionApp() {
 
   /* The rig calls this when the slip has stopped swinging. */
   const onRest = useCallback(() => {
-    setFreed(true)
     timers.current.forEach(clearTimeout)
     timers.current = AFTER.map((b) => window.setTimeout(() => setStep(b.step), b.at * 1000))
   }, [])
@@ -247,6 +251,13 @@ export default function TransactionApp() {
                     handOver={false}
                     fill={false}
                     onFeeding={() => setFeeding(true)}
+                    /*
+                     * It starts for the middle as the cut starts running, not
+                     * once the cut and the fall are both over. The sheet is
+                     * free from the first tooth; waiting for it to stop
+                     * swinging first added a second of nothing.
+                     */
+                    onTearing={() => setFreed(true)}
                     centre={freed}
                     onRest={onRest}
                   />
