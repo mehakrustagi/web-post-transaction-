@@ -275,7 +275,7 @@ export default function TransactionApp() {
               is the wash behind the heading — the same gradient throughout,
               not a travelling one handed off to a stationary copy.
             */}
-            <WashEdge show={cooking} full={firing} />
+            <WashEdge show={cooking} brew={freed} full={firing} />
 
             {/*
               And the page comes up behind it.

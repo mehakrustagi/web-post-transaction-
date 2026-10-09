@@ -45,6 +45,15 @@ export const EDGE_H = 1250
  */
 const PARK = FRAME_H - 200
 /**
+ * And where it sits once the slip is cut and standing on its own.
+ *
+ * The storyboard builds the colour in three steps, not two: a hint under the
+ * printer, more of it once the sheet is free, then the whole thing. Parked at
+ * 200 only the very top of the band is on the card and the third frame looked
+ * the same as the first — this brings another 230 of it up behind the slip.
+ */
+const BREW = FRAME_H - 430
+/**
  * And where it goes, which is away.
  *
  * Up until only its tail is left on the page — and then out by fading, not
@@ -105,6 +114,8 @@ const DOME = `radial-gradient(1400px 600px at 50% 50%,
 
 /** How much of itself it shows while the printer is still working. */
 const REST = 0.42
+/** And a little more of itself with it. */
+const REST_BREW = 0.62
 
 /**
  * Specks riding the edge, on their own slow periods. They travel with the
@@ -124,7 +135,18 @@ const GLINTS = Array.from({ length: 14 }, (_, i) => {
   }
 })
 
-export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
+export function WashEdge({
+  show,
+  brew,
+  full,
+}: {
+  /** Warm up at the foot of the card. */
+  show: boolean
+  /** The slip is cut and centred: bring more of it up behind. */
+  brew: boolean
+  /** And go. */
+  full: boolean
+}) {
   return (
     <motion.div
       aria-hidden
@@ -148,8 +170,8 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
        * take longer than the same thing speeding up.
        */
       animate={{
-        y: full ? GONE : PARK,
-        opacity: show ? (full ? [REST, 1, 1, REST, REST, 0] : REST) : 0,
+        y: full ? GONE : brew ? BREW : PARK,
+        opacity: show ? (full ? [REST_BREW, 1, 1, REST, REST, 0] : brew ? REST_BREW : REST) : 0,
       }}
       transition={
         full
@@ -180,7 +202,7 @@ export function WashEdge({ show, full }: { show: boolean; full: boolean }) {
                 ease: [0.33, 0, 0.3, 1],
               },
             }
-          : { duration: 0.9, ease: [0.33, 0, 0.2, 1] }
+          : { duration: brew ? 1.1 : 0.9, ease: [0.33, 0, 0.2, 1] }
       }
     >
       {/*
