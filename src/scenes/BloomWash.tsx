@@ -17,8 +17,18 @@ import { motion } from 'framer-motion'
 
 /** The canvas it moves on. */
 const FRAME_H = 915
-/** How tall the band is. */
-export const EDGE_H = 660
+/**
+ * How tall the band is.
+ *
+ * Tall enough that the circle below it has finished falling off before the
+ * element runs out. At 660 the top edge sat at 0.79 of the radius — the mask
+ * was still better than half opaque there, so the colour was cut flat across
+ * the card by the element's own boundary. A straight line, exactly where the
+ * whole point is that there is no straight line. At 900 the top centre is
+ * past the circle entirely and the bottom corners are still inside it, so it
+ * fades out above and keeps its width below.
+ */
+export const EDGE_H = 900
 /**
  * And the two places it is ever in.
  *
@@ -27,7 +37,7 @@ export const EDGE_H = 660
  * axis, one range: the band is not attached to the page and the page does not
  * move, so neither has to know anything about the other.
  */
-const PARK = FRAME_H - 180
+const PARK = FRAME_H - 260
 /**
  * And where it stops.
  *
