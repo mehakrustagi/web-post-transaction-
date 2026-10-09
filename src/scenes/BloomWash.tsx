@@ -34,7 +34,7 @@ const FRAME_H = 915
  * gradient. Given half again as much room the same stops have somewhere to
  * open out.
  */
-export const EDGE_H = 1500
+export const EDGE_H = 2200
 /**
  * And the two places it is ever in.
  *
@@ -43,7 +43,7 @@ export const EDGE_H = 1500
  * axis, one range: the band is not attached to the page and the page does not
  * move, so neither has to know anything about the other.
  */
-const PARK = FRAME_H - 200
+const PARK = FRAME_H - 280
 /**
  * And where it sits once the slip is cut and standing on its own.
  *
@@ -52,7 +52,7 @@ const PARK = FRAME_H - 200
  * 200 only the very top of the band is on the card and the third frame looked
  * the same as the first — this brings another 230 of it up behind the slip.
  */
-const BREW = FRAME_H - 430
+const BREW = FRAME_H - 560
 /**
  * And where it goes, which is away.
  *
@@ -62,7 +62,7 @@ const BREW = FRAME_H - 430
  * arrived: faint, for a moment, and then not there. Taking it off the canvas
  * outright skipped that beat and the end came out blunter than the start.
  */
-const GONE = -EDGE_H + 260
+const GONE = -EDGE_H + 400
 
 /**
  * The spectrum, sampled across the middle of 458:28512.
@@ -98,22 +98,23 @@ const SPECTRUM = `linear-gradient(95deg,
  * was still solid where the element ran out and the colour stopped against a
  * straight line — the same fault the top had, at the other end.
  *
- * Close to round: 950 by 700 is an aspect of 1.36, where it used to be 2.33
- * and read as a band with curved ends rather than a shape. The card's own
- * sides land at 0.67 of the radius, so the colour is thinning by the time it
- * reaches them — which is the containment, and the reason this looks like
- * one thing rather than a stripe.
+ * Round, and 2000 across. Not an ellipse flattened toward round — the two
+ * radii are the same number, so it is a circle and reads as one. The card's
+ * own sides land at 0.64 of it, which is far enough in that the colour is
+ * still strong where it crosses them and far enough out that you can tell it
+ * is a shape rather than a fill.
  *
- * The band grew to 1500 to allow it. The vertical radius has to stay inside
- * half the element's height or the circle is cut flat by the boundary before
- * it has finished falling off, and 700 against 750 clears it.
+ * The band is 2200 to allow that. The radius has to stay inside half the
+ * element's height or the circle is cut flat by the boundary before it has
+ * finished falling off — 1000 against 1100 clears, and every previous
+ * straight line across this card was that rule being broken.
  */
-const DOME = `radial-gradient(950px 700px at 50% 50%,
+const DOME = `radial-gradient(1000px 1000px at 50% 50%,
   rgba(0,0,0,1) 0%,
-  rgba(0,0,0,1) 44%,
-  rgba(0,0,0,0.88) 58%,
-  rgba(0,0,0,0.55) 72%,
-  rgba(0,0,0,0.22) 86%,
+  rgba(0,0,0,1) 60%,
+  rgba(0,0,0,0.88) 72%,
+  rgba(0,0,0,0.55) 82%,
+  rgba(0,0,0,0.22) 92%,
   rgba(0,0,0,0) 100%)`
 
 /** How much of itself it shows while the printer is still working. */
